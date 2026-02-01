@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Shop - Home</title>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <a href="index.html" class="brand">My Shop</a>
+
+        <!-- Shopping Cart -->
+        <div class="cart-wrapper">
+            <span>Shopping List (Total: $0.0)</span>
+            <div class="shopping-list">
+                <!-- Dynamic Items will be inserted here by JS -->
+                <button class="checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <aside>
+            <nav>
+                <h3>Categories</h3>
+                <ul>
+                    <!-- data-category attributes tell JS what to filter -->
+                    <li><a href="#" class="category-link" data-category="all">All Products</a></li>
+                    <li><a href="#" class="category-link" data-category="electronics">Electronics</a></li>
+                    <li><a href="#" class="category-link" data-category="clothing">Clothing</a></li>
+                    <li><a href="#" class="category-link" data-category="home">Home & Garden</a></li>
+                    <li><a href="#" class="category-link" data-category="toys">Toys</a></li>
+                    <li><a href="#" class="category-link" data-category="books">Books</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Dynamic Breadcrumbs -->
+            <nav class="breadcrumbs" id="breadcrumb-nav">
+                <a href="#" onclick="renderProducts('all'); return false;">Home</a> &gt; All Products
+            </nav>
+
+            <!-- Product Grid Container -->
+            <!-- Products are injected here by main.js based on the selected category -->
+            <section class="product-grid" id="product-container">
+                <!-- Fallback content if JS fails -->
+                <p>Loading products...</p>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        &copy; 2026 IERG4210 Assignment. All rights reserved.
+    </footer>
+
+    <!-- Link to JS -->
+    <script src="js/data.js" defer></script>
+    <script src="js/main.js" defer></script>
+</body>
+</html>

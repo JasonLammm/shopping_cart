@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - My Shop</title>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header>
+        <a href="index.html" class="brand">My Shop</a>
+
+        <div class="cart-wrapper">
+            <span>Shopping List (Total: $0.0)</span>
+            <div class="shopping-list">
+                <button class="checkout-btn">Checkout</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside>
+            <nav>
+                <h3>Categories</h3>
+                <ul>
+                    <li><a href="index.html" class="category-link">All Products</a></li>
+                    <li><a href="index.html" class="category-link">Electronics</a></li>
+                    <li><a href="index.html" class="category-link">Clothing</a></li>
+                    <li><a href="index.html" class="category-link">Home & Garden</a></li>
+                    <li><a href="index.html" class="category-link">Toys</a></li>
+                    <li><a href="index.html" class="category-link">Books</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main>
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a> &gt; 
+                <a href="index.html">Electronics</a> &gt; 
+                <span>Product Name 1</span>
+            </nav>
+
+            <section class="product-detail-view">
+                <div class="image-area">
+                    <img src="images/image.jpg" alt="Full Product Image" class="main-image">
+                </div>
+
+                <article class="detail-info">
+                    <h1>Product Name 1</h1>
+                    <div class="detail-price">$33.3</div>
+                    
+                    <p class="detail-desc">
+                        This is a detailed description of the product. It contains all the necessary 
+                        information regarding features, specifications, and usage instructions. 
+                        It is distinct from the thumbnail view on the main page.
+                    </p>
+
+                    <!-- Added class "add-btn" for JS to hook into -->
+                    <button class="add-btn">ADD TO CART</button>
+                </article>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        &copy; 2026 IERG4210 Assignment. All rights reserved.
+    </footer>
+
+    <script src="js/main.js" defer></script>
+</body>
+</html>
