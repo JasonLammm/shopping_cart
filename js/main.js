@@ -1,226 +1,293 @@
-document.addEventListener('DOMContentLoaded', () => {
+/* =========================================
+   js/main.js
+   MAIN APPLICATION LOGIC
+   ========================================= */
 
-    /* =========================================
-       DOM ELEMENTS
-       ========================================= */
-    const productContainer = document.getElementById('product-container');
-    const breadcrumbNav = document.getElementById('breadcrumb-nav');
-    const shoppingListContainer = document.querySelector('.shopping-list');
-    const cartWrapper = document.querySelector('.cart-wrapper');
-    const cartTotalLabel = document.querySelector('.cart-wrapper > span');
+// Global Cart State (Resets on refresh as per original design)
+let cartTotal = 0;
+let cart = [];
 
-    /* =========================================
-       1. RENDER LOGIC (CATEGORIES & PRODUCTS)
-       ========================================= */
-    
-    // Global function to allow inline onclick from HTML
-    window.renderProducts = function(category) {
-        if (!productContainer) return; // Exit if not on index page
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Identify which page we are on
+    const isIndexPage = document.getElementById("product-container");
+    const isProductPage = document.querySelector(".product-detail-view");
 
-        // Clear container
-        productContainer.innerHTML = '';
+    // 2. Initialize the specific page logic
+    if (isIndexPage) {
+        initHomePage();
+    } else if (isProductPage) {
+        initProductPage();
+    }
 
-        // Filter Data (Using global 'products' from data.js)
-        const filtered = (category === 'all') 
-            ? products 
-            : products.filter(p => p.category === category);
+    // 3. Initialize Global Cart Listeners (if any exist in header)
+    // (The cart display is updated when items are added)
+});
 
-        // Render HTML
-        if (filtered.length === 0) {
-            productContainer.innerHTML = '<p style="padding:20px; color:#666;">No products found in this category.</p>';
-        } else {
-            filtered.forEach(p => {
-                const article = document.createElement('article');
-                article.className = 'product-card';
-                article.innerHTML = `
-                    <a href="product.html">
-                        <img src="${p.image}" alt="${p.name}" class="product-thumb">
-                    </a>
-                    <a href="product.html" class="product-name">${p.name}</a>
-                    <div class="product-price">$${p.price.toFixed(1)}</div>
-                    <button class="add-btn" data-name="${p.name}" data-price="${p.price}">ADD TO CART</button>
-                `;
-                productContainer.appendChild(article);
-            });
-        }
 
-        // Update Breadcrumbs
-        if (breadcrumbNav) {
-            const catName = category.charAt(0).toUpperCase() + category.slice(1);
-            breadcrumbNav.innerHTML = `
-                <a href="#" onclick="renderProducts('all'); return false;">Home</a> &gt; 
-                ${category === 'all' ? 'All Products' : catName}
-            `;
-        }
+/* =========================================
+   HOME PAGE FUNCTIONS (index.html)
+   ========================================= */
+function initHomePage() {
+    // Initial Render of all products
+    renderProducts('all');
 
-        // Re-attach listeners to the new buttons
-        attachCartListeners();
-    };
-
-    // Attach click events to sidebar category links
+    // Attach Click Listeners to Sidebar Categories
     const categoryLinks = document.querySelectorAll('.category-link');
     categoryLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            if(productContainer) {
-                e.preventDefault();
-                const category = link.getAttribute('data-category');
-                renderProducts(category);
-            }
+            e.preventDefault();
+            const category = link.getAttribute('data-category');
+            renderProducts(category);
+            updateBreadcrumb(category);
         });
     });
+}
 
-    /* =========================================
-       2. SHOPPING CART LOGIC
-       ========================================= */
+function renderProducts(category) {
+    const container = document.getElementById("product-container");
+    container.innerHTML = ""; // Clear existing content
 
-    function updateCartTotal() {
-        let total = 0;
-        const cartItems = document.querySelectorAll('.shopping-list .cart-item');
-        
-        cartItems.forEach(item => {
-            const qtyInput = item.querySelector('input');
-            const priceEl = item.querySelector('.item-price');
-            if (qtyInput && priceEl) {
-                const price = parseFloat(priceEl.innerText.replace('$', ''));
-                const qty = parseInt(qtyInput.value);
-                if (!isNaN(price) && !isNaN(qty)) {
-                    total += price * qty;
-                }
-            }
-        });
+    // Filter products based on category
+    const filteredProducts = category === 'all' 
+        ? products 
+        : products.filter(p => p.category === category);
 
-        if (cartTotalLabel) {
-            cartTotalLabel.innerText = `Shopping List (Total: $${total.toFixed(1)})`;
-        }
+    if (filteredProducts.length === 0) {
+        container.innerHTML = "<p>No products found in this category.</p>";
+        return;
     }
 
-    function addItemToCart(name, price) {
-        const existingItems = document.querySelectorAll('.shopping-list .cart-item');
-        let found = false;
+    // Create HTML for each product
+    filteredProducts.forEach(product => {
+        // Create Card
+        const card = document.createElement("div");
+        card.className = "product-card"; // Make sure to add CSS for this class
 
-        existingItems.forEach(item => {
-            const nameEl = item.querySelector('span:first-child');
-            if (nameEl && nameEl.innerText === name) {
-                const input = item.querySelector('input');
-                input.value = parseInt(input.value) + 1;
-                found = true;
-                
-                // Visual Flash
-                item.style.backgroundColor = '#e8f5e9';
-                setTimeout(() => item.style.backgroundColor = 'transparent', 300);
-            }
-        });
+        // Inner HTML: Note the href points to product.html with ?id=...
+        card.innerHTML = `
+            <a href="product.html?id=${product.id}" style="text-decoration: none; color: inherit;">
+                <img src="${product.image}" alt="${product.name}" style="width:100%; border-radius: 5px;">
+                <h4>${product.name}</h4>
+                <p class="price">$${product.price.toFixed(1)}</p>
+            </a>
+            <button class="add-btn" onclick="addToCart(${product.id})">Add to Cart</button>
+        `;
 
-        if (!found) {
-            const newItem = document.createElement('div');
-            newItem.className = 'cart-item';
-            // Create a safe, unique identifier from the product name (e.g., "Product Name 1" -> "product-name-1")
-            const inputId = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-            newItem.innerHTML = `
-                <span>${name}</span>
-                <!-- Added name and id attributes to the input -->
-                <label>Qty: <input type="number" value="1" min="1" name="qty-${inputId}" id="qty-${inputId}"></label>
-                <span class="item-price">$${price}</span>
-            `;
+        container.appendChild(card);
+    });
+}
 
-            
-            const checkoutBtn = document.querySelector('.checkout-btn');
-            if (checkoutBtn) {
-                shoppingListContainer.insertBefore(newItem, checkoutBtn);
-            } else {
-                shoppingListContainer.appendChild(newItem);
-            }
-
-            const input = newItem.querySelector('input');
-            input.addEventListener('change', updateCartTotal);
-            input.addEventListener('input', updateCartTotal);
-        }
-
-        updateCartTotal();
-    }
-
-    function attachCartListeners() {
-        const addButtons = document.querySelectorAll('.add-btn');
-        addButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                
-                let name, price;
-                
-                if (btn.hasAttribute('data-name')) {
-                    name = btn.getAttribute('data-name');
-                    price = btn.getAttribute('data-price');
-                } else {
-                    const infoContainer = btn.closest('.detail-info');
-                    if (infoContainer) {
-                        name = infoContainer.querySelector('h1').innerText;
-                        price = infoContainer.querySelector('.detail-price').innerText.replace('$','');
-                    }
-                }
-
-                if(name && price) {
-                    addItemToCart(name, price);
-
-                    const originalText = btn.innerText;
-                    btn.innerText = "Added!";
-                    btn.style.backgroundColor = "#27ae60";
-                    btn.style.color = "white";
-                    btn.style.borderColor = "#27ae60";
-                    
-                    setTimeout(() => {
-                        btn.innerText = originalText;
-                        btn.style.backgroundColor = "";
-                        btn.style.color = "";
-                        btn.style.borderColor = "";
-                    }, 1000);
-                }
-            });
-        });
-    }
-
-    /* =========================================
-       3. INITIALIZATION
-       ========================================= */
-
-    if (productContainer) {
+function updateBreadcrumb(category) {
+    const nav = document.getElementById("breadcrumb-nav");
+    const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+    // Re-bind the Home click to renderProducts('all')
+    nav.innerHTML = `<a href="#" id="bc-home">Home</a> &gt; ${categoryName === 'All' ? 'All Products' : categoryName}`;
+    
+    document.getElementById("bc-home").addEventListener("click", (e) => {
+        e.preventDefault();
         renderProducts('all');
-    } else {
-        attachCartListeners();
+        updateBreadcrumb('all');
+    });
+}
+
+
+/* =========================================
+   PRODUCT PAGE FUNCTIONS (product.html)
+   ========================================= */
+function initProductPage() {
+    // 1. Get the Product ID from the URL (e.g., product.html?id=2)
+    const params = new URLSearchParams(window.location.search);
+    const idParam = params.get("id");
+    
+    // 2. Find the product in the database
+    const product = products.find(p => p.id == idParam);
+
+    if (!product) {
+        document.querySelector("main").innerHTML = "<h2>Product not found.</h2><a href='index.html'>Return Home</a>";
+        return;
     }
 
-    // Image Slider
-    const mainImage = document.querySelector('.main-image');
-    if (mainImage) {
-        const sliderContainer = document.createElement('div');
-        sliderContainer.className = 'slider-thumbnails';
-        sliderContainer.style.marginTop = '15px';
-        sliderContainer.style.display = 'flex';
-        sliderContainer.style.gap = '15px';
-        sliderContainer.style.justifyContent = 'center';
+    // 3. Inject Data into HTML
+    
+    // Breadcrumbs
+    const breadcrumbs = document.querySelector(".breadcrumbs");
+    breadcrumbs.innerHTML = `
+        <a href="index.html">Home</a> &gt; 
+        <a href="index.html">${capitalize(product.category)}</a> &gt; 
+        <span>${product.name}</span>
+    `;
 
-        const images = [
-            mainImage.src,
-            'https://via.placeholder.com/450/667eea/fff?text=Side+View', 
-            'https://via.placeholder.com/450/764ba2/fff?text=Detail+View'
-        ];
+    // Main Image
+    const imgElement = document.querySelector(".main-image");
+    imgElement.src = product.image;
+    imgElement.alt = product.name;
 
-        images.forEach((imgSrc, index) => {
-            const thumb = document.createElement('img');
-            thumb.src = imgSrc;
-            thumb.style.width = '70px';
-            thumb.style.height = '70px';
-            thumb.style.objectFit = 'cover';
-            thumb.style.cursor = 'pointer';
-            thumb.style.borderRadius = '12px';
-            thumb.style.border = (index === 0) ? '3px solid #667eea' : '3px solid transparent';
-            
-            thumb.addEventListener('click', () => {
-                mainImage.src = imgSrc;
-                sliderContainer.querySelectorAll('img').forEach(t => t.style.border = '3px solid transparent');
-                thumb.style.border = '3px solid #667eea';
+    // Title & Price
+    document.querySelector(".detail-info h1").textContent = product.name;
+    document.querySelector(".detail-price").textContent = "$" + product.price.toFixed(1);
+
+    // Description (Dynamic Mockup)
+    document.querySelector(".detail-desc").textContent = 
+        `This is a detailed view of ${product.name}. It belongs to the ${product.category} category ` +
+        `and is currently one of our best sellers. Quality guaranteed. ` +
+        `Lorem ipsum dolor sit amet, consectetur adipiscing elit.`;
+
+    // Add to Cart Button
+    const addBtn = document.querySelector(".detail-info .add-btn");
+    addBtn.onclick = () => {
+        addToCart(product.id);
+    };
+}
+
+
+/* =========================================
+   SHARED FUNCTIONS (Cart & Utils)
+   ========================================= */
+
+function addToCart(productId) {
+    const product = products.find(p => p.id === productId);
+    
+    if (product) {
+        // Check if item already exists in cart
+        const existingItem = cart.find(item => item.id === productId);
+
+        if (existingItem) {
+            existingItem.count++;
+        } else {
+            cart.push({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                count: 1
             });
-            sliderContainer.appendChild(thumb);
-        });
-        mainImage.parentNode.insertBefore(sliderContainer, mainImage.nextSibling);
+        }
+
+        updateCartUI();
+        // Removed alert() to make the UI update smoother
     }
-});
+}
+
+
+function updateCartUI() {
+    // 1. Calculate new total
+    const total = cart.reduce((sum, item) => sum + (item.price * item.count), 0);
+
+    // 2. Update the total label in the header
+    const cartDisplay = document.querySelector(".cart-wrapper span");
+    if (cartDisplay) {
+        cartDisplay.textContent = `Shopping List (Total: $${total.toFixed(1)})`;
+    }
+
+    // 3. Render the list of items
+    const shoppingListDiv = document.querySelector(".shopping-list");
+    if (shoppingListDiv) {
+        // Clear current content
+        shoppingListDiv.innerHTML = "";
+
+        // If cart is empty
+        if (cart.length === 0) {
+            const emptyMsg = document.createElement("div");
+            emptyMsg.textContent = "Cart is empty";
+            emptyMsg.style.padding = "10px";
+            shoppingListDiv.appendChild(emptyMsg);
+        } else {
+            // Create the list (<ul>)
+            const ul = document.createElement("ul");
+            ul.style.listStyle = "none";
+            ul.style.padding = "10px";
+            ul.style.margin = "0";
+
+            cart.forEach(item => {
+                const li = document.createElement("li");
+                li.style.borderBottom = "1px solid #eee";
+                li.style.padding = "5px 0";
+                li.style.display = "flex";
+                li.style.justifyContent = "space-between";
+                
+                li.innerHTML = `
+                    <span>${item.name} <small>(x${item.count})</small></span>
+                    <span>$${(item.price * item.count).toFixed(1)}</span>
+                `;
+                ul.appendChild(li);
+            });
+
+            shoppingListDiv.appendChild(ul);
+        }
+
+        // 4. Re-add the Checkout button (since we cleared innerHTML)
+        const checkoutBtn = document.createElement("button");
+        checkoutBtn.className = "checkout-btn";
+        checkoutBtn.textContent = "Checkout";
+        checkoutBtn.onclick = handleCheckout; // Attach checkout logic here if needed
+        
+        // Style the button slightly to separate it from list
+        checkoutBtn.style.width = "100%";
+        checkoutBtn.style.marginTop = "10px";
+        
+        shoppingListDiv.appendChild(checkoutBtn);
+    }
+}
+
+function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function handleCheckout() {
+    // 1. Validation: Ensure cart is not empty
+    if (cart.length === 0) {
+        alert("Your cart is empty! Please add items before checking out.");
+        return;
+    }
+
+    // 2. Calculate final total
+    const total = cart.reduce((sum, item) => sum + (item.price * item.count), 0);
+
+    // 3. User Confirmation
+    if (!confirm(`Proceed to payment? Total amount: $${total.toFixed(1)}`)) {
+        return;
+    }
+
+    // 4. Prepare Payload
+    // We send the cart array. In a real app, the server should recalculate 
+    // prices to prevent tampering, but sending IDs and quantities is standard.
+    const orderData = {
+        items: cart,
+        total: total,
+        currency: "USD",
+        timestamp: new Date().toISOString()
+    };
+
+    // 5. Send to Server (Assuming an endpoint like /api/checkout)
+    // If you haven't built the backend yet, the .catch() block will handle the demo.
+    fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            throw new Error("Server response was not ok.");
+        }
+    })
+    .then(data => {
+        // SUCCESS: Backend processed the order
+        alert("Order success! Transaction ID: " + (data.transactionId || "N/A"));
+        cart = [];      // Clear Global State
+        updateCartUI(); // Clear UI
+    })
+    .catch(error => {
+        // ERROR / DEMO MODE: 
+        // If the fetch fails (e.g., 404 Not Found because backend is missing),
+        // we simulate a success for the frontend demo.
+        console.warn("Backend API not reachable. Performing client-side checkout simulation.");
+        
+        alert(`[Demo Mode] Payment processed successfully!\nTotal Charged: $${total.toFixed(1)}`);
+        
+        cart = [];      // Clear Global State
+        updateCartUI(); // Clear UI
+    });
+}

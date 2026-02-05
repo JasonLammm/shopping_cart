@@ -26,6 +26,7 @@
             <nav>
                 <h3>Categories</h3>
                 <ul>
+                    <!-- On product page, categories link back to index -->
                     <li><a href="index.html" class="category-link">All Products</a></li>
                     <li><a href="index.html" class="category-link">Electronics</a></li>
                     <li><a href="index.html" class="category-link">Clothing</a></li>
@@ -37,28 +38,29 @@
         </aside>
 
         <main>
+            <!-- Breadcrumbs injected by JS -->
             <nav class="breadcrumbs">
-                <a href="index.html">Home</a> &gt; 
-                <a href="index.html">Electronics</a> &gt; 
-                <span>Product Name 1</span>
+                <a href="index.html">Home</a> &gt; Loading...
             </nav>
 
             <section class="product-detail-view">
                 <div class="image-area">
-                    <img src="images/image.jpg" alt="Full Product Image" class="main-image">
+                    <!-- Image Source injected by JS -->
+                    <img src="" alt="Loading..." class="main-image">
                 </div>
 
                 <article class="detail-info">
-                    <h1>Product Name 1</h1>
-                    <div class="detail-price">$33.3</div>
+                    <!-- Title injected by JS -->
+                    <h1>Loading Product...</h1>
                     
+                    <!-- Price injected by JS -->
+                    <div class="detail-price">$0.0</div>
+                    
+                    <!-- Description injected by JS -->
                     <p class="detail-desc">
-                        This is a detailed description of the product. It contains all the necessary 
-                        information regarding features, specifications, and usage instructions. 
-                        It is distinct from the thumbnail view on the main page.
+                        Please wait while we load the product details...
                     </p>
 
-                    <!-- Added class "add-btn" for JS to hook into -->
                     <button class="add-btn">ADD TO CART</button>
                 </article>
             </section>
@@ -69,6 +71,8 @@
         &copy; 2026 IERG4210 Assignment. All rights reserved.
     </footer>
 
-    <script src="js/main.js" defer></script>
+    <!-- Link to JS -->
+    <script src="js/data.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>

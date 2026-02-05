@@ -7,6 +7,13 @@
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Inline styles for grid layout required by JS generation */
+        .product-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+        .product-card { border: 1px solid #eee; padding: 15px; width: 220px; border-radius: 8px; text-align: center; }
+        .product-card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .product-card .add-btn { margin-top: 10px; padding: 5px 10px; cursor: pointer; }
+    </style>
 </head>
 <body>
 
@@ -18,7 +25,6 @@
         <div class="cart-wrapper">
             <span>Shopping List (Total: $0.0)</span>
             <div class="shopping-list">
-                <!-- Dynamic Items will be inserted here by JS -->
                 <button class="checkout-btn">Checkout</button>
             </div>
         </div>
@@ -30,7 +36,6 @@
             <nav>
                 <h3>Categories</h3>
                 <ul>
-                    <!-- data-category attributes tell JS what to filter -->
                     <li><a href="#" class="category-link" data-category="all">All Products</a></li>
                     <li><a href="#" class="category-link" data-category="electronics">Electronics</a></li>
                     <li><a href="#" class="category-link" data-category="clothing">Clothing</a></li>
@@ -43,15 +48,14 @@
 
         <!-- Main Content -->
         <main>
-            <!-- Dynamic Breadcrumbs -->
+            <!-- Breadcrumbs -->
             <nav class="breadcrumbs" id="breadcrumb-nav">
-                <a href="#" onclick="renderProducts('all'); return false;">Home</a> &gt; All Products
+                <a href="#" id="bc-home-init">Home</a> &gt; All Products
             </nav>
 
             <!-- Product Grid Container -->
-            <!-- Products are injected here by main.js based on the selected category -->
             <section class="product-grid" id="product-container">
-                <!-- Fallback content if JS fails -->
+                <!-- Products injected here by JS -->
                 <p>Loading products...</p>
             </section>
         </main>
@@ -62,7 +66,7 @@
     </footer>
 
     <!-- Link to JS -->
-    <script src="js/data.js" defer></script>
-    <script src="js/main.js" defer></script>
+    <script src="js/data.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
