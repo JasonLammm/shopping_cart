@@ -20,32 +20,30 @@
     <!-- Header -->
     <header>
         <a href="index.html" class="brand">My Shop</a>
-
-        <!-- Shopping Cart -->
+        
+        <!-- Shopping Cart Trigger -->
         <div class="cart-wrapper">
-            <span>Shopping List (Total: $0.0)</span>
-            <div class="shopping-list">
-                <button class="checkout-btn">Checkout</button>
+            <span class="shopping-list-trigger">Shopping List (Total: $0.0)</span>
+            
+            <!-- Dropdown Content -->
+            <div class="shopping-list shopping-list-content">
+                <p style="padding:10px; text-align:center;">Cart is empty</p>
             </div>
         </div>
-    </header>
+    </header>    
 
     <div class="container">
         <!-- Sidebar Navigation -->
         <aside>
             <nav>
                 <h3>Categories</h3>
-                <ul>
-                    <li><a href="#" class="category-link" data-category="all">All Products</a></li>
-                    <li><a href="#" class="category-link" data-category="electronics">Electronics</a></li>
-                    <li><a href="#" class="category-link" data-category="clothing">Clothing</a></li>
-                    <li><a href="#" class="category-link" data-category="home">Home & Garden</a></li>
-                    <li><a href="#" class="category-link" data-category="toys">Toys</a></li>
-                    <li><a href="#" class="category-link" data-category="books">Books</a></li>
+                <!-- Just an empty UL with the correct class name -->
+                <ul class="category-list">
+                    <!-- JavaScript will insert <li> items here automatically -->
+                    <li>Loading categories...</li>
                 </ul>
             </nav>
         </aside>
-
         <!-- Main Content -->
         <main>
             <!-- Breadcrumbs -->
@@ -62,11 +60,10 @@
     </div>
 
     <footer>
-        &copy; 2026 IERG4210 Assignment. All rights reserved.
+        Lam Leung Yiu 1155192972
     </footer>
 
     <!-- Link to JS -->
-    <script src="js/data.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

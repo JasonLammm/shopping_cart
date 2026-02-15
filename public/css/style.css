@@ -278,6 +278,16 @@ main {
     overflow: hidden;
 }
 
+/* Fix for Product Images */
+.product-card img {
+    width: 100%;           /* Force image to fit container width */
+    height: 200px;         /* Set a fixed height */
+    object-fit: contain;   /* KEY: Ensures whole image is visible without cropping */
+    /* OR */
+    /* object-fit: cover;  /* KEY: Fills the box, but crops edges (Good for thumbnails) */
+    background-color: #f8f8f8; /* specific background for transparent/contain images */
+}
+
 .product-card:hover {
     transform: translateY(-10px) scale(1.02);
     box-shadow: 0 20px 40px -10px rgba(0,0,0,0.2);
@@ -338,58 +348,119 @@ main {
 /* --- 8. PRODUCT DETAIL PAGE --- */
 .product-detail-view {
     display: flex;
-    gap: 50px;
+    gap: 50px; /* Space between image and text */
     background: white;
     padding: 40px;
     border-radius: 24px;
-    box-shadow: var(--glass-shadow);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08); /* Soft shadow */
+    margin-top: 20px;
+    align-items: flex-start; /* Align top */
 }
 
-.main-image {
-    width: 450px;
-    height: 450px;
-    object-fit: cover;
-    background-color: #f8f8f8;
+.product-detail-image {
+    flex: 1; /* Takes up 50% width */
+    display: flex;
+    justify-content: center;
+    background: #f8f9fa; /* Light gray background */
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    padding: 20px;
 }
 
-.detail-info h1 {
-    font-size: 3rem;
-    background: var(--primary-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.product-detail-image img {
+    max-width: 100%;
+    max-height: 500px; /* Limit height */
+    width: auto;
+    object-fit: contain; /* Show full image */
+    border-radius: 12px;
+    mix-blend-mode: multiply; /* Helps white images blend */
+}
+
+.product-info {
+    flex: 1; /* Takes up 50% width */
+    display: flex;
+    flex-direction: column;
+    padding-top: 10px;
+}
+
+/* Typography Improvements */
+.product-info h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 10px;
+    line-height: 1.2;
+}
+
+.product-info .price {
+    font-size: 2rem;
+    color: var(--accent-color); /* Purple/Blue */
+    font-weight: 700;
+    margin-bottom: 25px;
+    display: inline-block;
+    background: rgba(102, 126, 234, 0.1); /* Light accent bg */
+    padding: 5px 15px;
+    border-radius: 8px;
+}
+
+.description-box {
+    background: #fff;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+    margin-bottom: 30px;
+}
+
+.description-box h3 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
     margin-bottom: 10px;
 }
 
-.detail-price {
-    font-size: 2.5rem;
-    color: var(--text-dark);
-    margin-bottom: 25px;
-    font-weight: 800;
-}
-
-.detail-desc {
+.description-box p {
     font-size: 1.1rem;
-    color: var(--text-light);
-    margin-bottom: 30px;
+    color: #555;
     line-height: 1.8;
 }
 
-/* Input Styling */
-input[type="number"] {
-    border: 2px solid #eee;
-    background: #f9f9f9;
-    padding: 10px;
-    border-radius: 8px;
-    font-weight: bold;
-    color: var(--text-dark);
-    outline: none;
+/* 4. Add to Cart Button (Make it BIG) */
+.product-info .add-btn {
+    width: 100%; /* Full width button */
+    padding: 18px;
+    font-size: 1.1rem;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-top: auto; /* Push to bottom if flex container has height */
 }
 
-input[type="number"]:focus {
-    border-color: var(--accent-color);
-    background: white;
+.product-info .add-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* 5. Responsive (Mobile Stack) */
+@media (max-width: 768px) {
+    .product-detail-view {
+        flex-direction: column; /* Stack vertically */
+        padding: 20px;
+        gap: 30px;
+    }
+    
+    .product-detail-image, .product-info {
+        flex: none;
+        width: 100%;
+    }
+    
+    .product-info h2 {
+        font-size: 1.8rem;
+    }
 }
 
 /* --- 9. RESPONSIVE --- */
@@ -413,4 +484,44 @@ footer {
     color: #aaa;
     margin-top: 60px;
     border-top: 1px solid #eee;
+}
+
+/* FIX: Category Active State */
+aside ul li {
+    list-style: none;
+    padding: 12px 15px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+aside ul li.active {
+    background: white;
+    color: var(--accent-color);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    font-weight: 700;
+}
+
+aside ul li:hover {
+    background: white;
+    color: var(--accent-color);
+    transform: translateX(5px);
+}
+
+/* FIX: Product Card Images (Generic) */
+.product-card img,
+.product-card .product-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    background-color: #f4f4f4;
+}
+
+/* FIX: Shopping Cart Dropdown Toggle (Click-based, not hover) */
+.shopping-list-content.active {
+    display: block !important;
 }

@@ -1,2 +1,28 @@
+# Dependencies
+node_modules/
+
+# Database (SQLite file should not be committed)
+shopping.db
+*.db
+*.sqlite
+
+# System Files
 .DS_Store
-*.pem
+Thumbs.db
+
+# Environment Variables / Secrets (Important!)
+.env
+ierg4210-vm_key.pem
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# Optional: Uploaded Images (If you don't want to commit user uploads)
+# Keep the folder, but ignore contents
+public/images/*
+!public/images/.gitkeep
+# (If you want to keep the initial dummy images, comment out the lines above)

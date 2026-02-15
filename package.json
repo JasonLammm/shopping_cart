@@ -1,0 +1,27 @@
+{
+  "name": "ierg_4210_project_1155192972",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JasonLammm/shopping_cart.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JasonLammm/shopping_cart/issues"
+  },
+  "homepage": "https://github.com/JasonLammm/shopping_cart#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.0.2",
+    "sharp": "^0.34.5",
+    "sqlite3": "^5.1.7"
+  }
+}

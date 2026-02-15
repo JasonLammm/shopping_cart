@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details - My Shop</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Google Fonts for better typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- 1. HEADER (Consistent with index.html) -->
+    <header>
+        <a href="index.html" class="brand">My Shop</a>
+        
+        <!-- Shopping Cart Trigger (Dynamic) -->
+        <div class="cart-wrapper">
+            <span class="shopping-list-trigger">Shopping List (Total: $0.0)</span>
+            
+            <!-- Dropdown Content (Hidden by default) -->
+            <div class="shopping-list shopping-list-content">
+                <p style="padding:10px; text-align:center;">Cart is empty</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. MAIN CONTENT -->
+    <main class="container">
+        
+        <!-- Breadcrumbs Navigation -->
+        <div class="breadcrumbs" id="breadcrumb-nav">
+            <a href="index.html">Home</a> > Loading Product...
+        </div>
+
+        <!-- Product Details Container -->
+        <div class="product-detail-view" id="product-details-container">
+            
+            <!-- Left Column: Product Image -->
+            <div class="product-detail-image">
+                <!-- Javascript will update src -->
+                <img src="images/placeholder.jpg" class="main-image" alt="Product Image">
+            </div>
+
+            <!-- Right Column: Product Info -->
+            <div class="product-info">
+                <h2>Loading...</h2>
+                <p class="price">$0.00</p>
+                
+                <div class="description-box">
+                    <h3>Description</h3>
+                    <p>Loading product description...</p>
+                </div>
+
+                <!-- ADD TO CART BUTTON (Critical for Phase 3) -->
+                <button id="add-to-cart-btn" class="add-btn">ADD TO CART</button>
+                
+                <a href="index.html" style="display:block; margin-top:20px; color:#888; text-decoration:none;">&larr; Back to Shop</a>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 3. FOOTER -->
+    <footer>
+        <p>&copy; 2026 My Shop. All rights reserved.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+
+</body>
+</html>

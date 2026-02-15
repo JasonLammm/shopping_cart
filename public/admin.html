@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Admin Panel</title>
+        <link rel="stylesheet" href="css/admin.css">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    </head>
+    
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        <nav>
+            <a href="index.html">Home</a> | 
+            <a href="admin.html">Admin</a>
+        </nav>
+
+        <!-- CATEGORY MANAGEMENT (Requirement: Manage Categories) -->
+        <div class="section" id="category-section">
+            <h2>Manage Categories</h2>
+            
+            <!-- Add Category Form -->
+            <form id="add-category-form">
+                <div class="form-group">
+                    <label>New Category Name:</label>
+                    <input type="text" id="cat-name-input" required>
+                </div>
+                <button type="submit">Add Category</button>
+            </form>
+
+            <!-- Categories Table -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="category-table-body">
+                    <!-- Loaded by JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PRODUCT MANAGEMENT (Requirement: Manage Products) -->
+        <div class="section" id="product-section">
+            <h2>Manage Products</h2>
+
+            <!-- Add/Edit Product Form -->
+            <div id="product-form-container">
+                <h3 id="form-title">Add New Product</h3>
+                <form id="product-form">
+                    <input type="hidden" id="prod-id"> <!-- Hidden ID for Editing -->
+                    
+                    <div class="form-group">
+                        <label>Category:</label>
+                        <select id="prod-cat" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <input type="text" id="prod-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Price:</label>
+                        <input type="number" id="prod-price" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Description:</label>
+                        <textarea id="prod-desc" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Image:</label>
+                        <input type="file" id="prod-image" accept="image/*">
+                        <p id="current-image-text" class="hidden">Current Image: <span id="img-name"></span></p>
+                    </div>
+
+                    <button type="submit" id="submit-btn">Save Product</button>
+                    <button type="button" id="cancel-btn" class="hidden">Cancel Edit</button>
+                </form>
+            </div>
+
+            <!-- Products Table -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Category</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="product-table-body">
+                    <!-- Loaded by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Link to external JS -->
+    <script src="js/admin.js"></script>
+</body>
+</html>
