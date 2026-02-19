@@ -127,7 +127,7 @@ async function fetchProducts() {
     products.forEach(p => {
         const tr = document.createElement('tr');
         // Show thumbnail if available, else standard image
-        const imgPath = p.image ? `images/thumb_${p.image}` : ''; 
+        const imgPath = p.image ? `public/images/thumb_${p.image}` : ''; 
         
         tr.innerHTML = `
             <td>${p.pid}</td>

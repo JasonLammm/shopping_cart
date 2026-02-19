@@ -149,8 +149,8 @@ function renderProducts(products) {
         const price = parseFloat(p.price) || 0;
         
         // Image Logic: Prefer thumbnail, fallback to main, fallback to placeholder
-        const imgPath = p.image ? `images/thumb_${p.image}` : 'images/placeholder.jpg';
-        const mainPath = p.image ? `images/${p.image}` : 'images/placeholder.jpg';
+        const imgPath = p.image ? `public/images/thumb_${p.image}` : 'public/images/placeholder.jpg';
+        const mainPath = p.image ? `public/images/${p.image}` : 'public/images/placeholder.jpg';
 
         card.innerHTML = `
             <a href="product.html?id=${p.pid}" style="text-decoration: none; color: inherit; display: block;">
