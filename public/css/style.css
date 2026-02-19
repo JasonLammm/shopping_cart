@@ -346,99 +346,91 @@ main {
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
 
+/* --- PRODUCT DETAIL LAYOUT --- */
 /* --- 8. PRODUCT DETAIL PAGE --- */
+
 .product-detail-view {
     display: flex;
     gap: 50px; /* Space between image and text */
     background: white;
     padding: 40px;
     border-radius: 24px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.08); /* Soft shadow */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
     margin-top: 20px;
-    align-items: flex-start; /* Align top */
+    /* CHANGE: stretch items to make both columns equal height */
+    align-items: stretch; 
+    min-height: 500px; /* Force a minimum height */
 }
 
 .product-detail-image {
-    flex: 1; /* Takes up 50% width */
+    flex: 1; 
+    /* CHANGE: Ensure it fills the height */
     display: flex;
     justify-content: center;
-    background: #f8f9fa; /* Light gray background */
+    align-items: center; /* Center the image vertically & horizontally */
+    background: #f8f9fa; 
     border-radius: 20px;
-    padding: 20px;
+    padding: 40px; /* Add more padding inside the gray box */
+    height: auto; /* Let flex-grow handle the height */
 }
 
 .product-detail-image img {
     max-width: 100%;
-    max-height: 500px; /* Limit height */
+    max-height: 400px; /* Limit image height so it doesn't explode */
     width: auto;
-    object-fit: contain; /* Show full image */
-    border-radius: 12px;
-    mix-blend-mode: multiply; /* Helps white images blend */
+    object-fit: contain;
+    mix-blend-mode: multiply;
 }
 
 .product-info {
-    flex: 1; /* Takes up 50% width */
+    flex: 1;
     display: flex;
     flex-direction: column;
+    justify-content: center; /* Center text vertically */
     padding-top: 10px;
 }
 
-/* Typography Improvements */
+/* Title */
 .product-info h2 {
-    font-size: 2.5rem;
+    font-size: 3rem; /* Huge title */
     font-weight: 800;
-    color: var(--text-dark);
-    margin-bottom: 10px;
-    line-height: 1.2;
+    margin-bottom: 15px;
+    letter-spacing: -1px;
 }
 
+/* Price Tag */
 .product-info .price {
-    font-size: 2rem;
-    color: var(--accent-color); /* Purple/Blue */
-    font-weight: 700;
-    margin-bottom: 25px;
-    display: inline-block;
-    background: rgba(102, 126, 234, 0.1); /* Light accent bg */
-    padding: 5px 15px;
-    border-radius: 8px;
-}
-
-.description-box {
-    background: #fff;
-    border-top: 1px solid #eee;
-    padding-top: 20px;
+    font-size: 2.2rem;
+    color: var(--accent-color);
+    font-weight: 800;
+    background: #f0f2ff; /* Light purple bg */
+    padding: 10px 25px;
+    border-radius: 12px;
     margin-bottom: 30px;
+    display: inline-block;
 }
 
+/* Description Title */
 .description-box h3 {
-    font-size: 1rem;
-    text-transform: uppercase;
+    font-size: 0.9rem;
+    color: #999;
+    font-weight: 800;
     letter-spacing: 1px;
-    color: #888;
+    text-transform: uppercase;
     margin-bottom: 10px;
 }
 
-.description-box p {
-    font-size: 1.1rem;
-    color: #555;
-    line-height: 1.8;
-}
-
-/* 4. Add to Cart Button (Make it BIG) */
+/* Add to Cart Button */
 .product-info .add-btn {
-    width: 100%; /* Full width button */
+    width: 100%;
     padding: 18px;
-    font-size: 1.1rem;
     background: var(--primary-gradient);
     color: white;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
+    font-size: 1.1rem;
     font-weight: 700;
-    text-transform: uppercase;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); /* Purple shadow */
     letter-spacing: 1px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    margin-top: auto; /* Push to bottom if flex container has height */
 }
 
 .product-info .add-btn:hover {
@@ -525,4 +517,47 @@ aside ul li:hover {
 /* FIX: Shopping Cart Dropdown Toggle (Click-based, not hover) */
 .shopping-list-content.active {
     display: block !important;
+}
+
+/* --- FANCY QUANTITY SELECTOR --- */
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Space between label and input */
+    margin: 20px 0 30px 0; /* Spacing around the row */
+    font-family: 'Poppins', sans-serif;
+}
+
+.quantity-selector label {
+    font-weight: 800; /* Bold label */
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.quantity-selector input[type="number"] {
+    width: 80px;
+    padding: 10px;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-dark);
+    background: white;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.quantity-selector input[type="number"]:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+/* Hide the ugly spinner arrows in Chrome/Safari/Edge */
+.quantity-selector input[type="number"]::-webkit-inner-spin-button, 
+.quantity-selector input[type="number"]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
 }

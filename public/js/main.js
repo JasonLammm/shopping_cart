@@ -189,7 +189,7 @@ function updateBreadcrumb(text) {
    PART 2: PRODUCT DETAILS PAGE (product.html)
    ========================================= */
 
-   async function initProductPage() {
+async function initProductPage() {
     // 1. Get Product ID from URL
     const params = new URLSearchParams(window.location.search);
     const pid = params.get("id");
@@ -208,17 +208,12 @@ function updateBreadcrumb(text) {
         // 3. Populate Image
         const imgEl = document.querySelector(".product-detail-image img");
         if(imgEl) {
-            // Use the main image file (e.g., "5.jpg")
-            // Note: We use the full image for details, not the thumbnail
             if (product.image) {
                 imgEl.src = `images/${product.image}`;
                 imgEl.alt = product.name;
-                
-                // Fallback if image file is missing (404)
                 imgEl.onerror = function() {
-                    this.onerror = null; // Prevent infinite loop
+                    this.onerror = null; 
                     this.src = 'images/placeholder.jpg';
-                    this.alt = 'Image not available';
                 };
             } else {
                 imgEl.src = 'images/placeholder.jpg';
@@ -227,14 +222,12 @@ function updateBreadcrumb(text) {
 
         // 4. Populate Text Info
         const titleEl = document.querySelector(".product-info h2");
-        const descEl = document.querySelector(".product-info p:not(.price)"); // Target description specifically
-        // OR better yet, target by ID/class if you updated HTML, but this works generally
         const descBox = document.querySelector(".description-box p"); 
+        const descEl = document.querySelector(".product-info p:not(.price)");
         const priceEl = document.querySelector(".product-info .price");
 
         if(titleEl) titleEl.textContent = product.name;
         
-        // Handle description location (flexible)
         if(descBox) {
             descBox.textContent = product.description || "No description available.";
         } else if(descEl) {
@@ -249,12 +242,22 @@ function updateBreadcrumb(text) {
             breadcrumb.innerHTML = `<a href="index.html">Home</a> > Products > ${product.name}`;
         }
 
-        // 6. Activate "Add to Cart" Button
+        // 6. Activate "Add to Cart" Button (UPDATED Logic)
         const addBtn = document.getElementById("add-to-cart-btn");
         if (addBtn) {
-            // Remove old listeners (by cloning) or just overwrite onclick
             addBtn.onclick = () => {
-                addToCart(product.pid, product.name, parseFloat(product.price));
+                // Get the quantity from the input box
+                const qtyInput = document.getElementById("product-qty");
+                let quantity = 1;
+
+                if (qtyInput) {
+                    quantity = parseInt(qtyInput.value);
+                    // Basic validation to prevent adding 0 or negative numbers
+                    if (isNaN(quantity) || quantity < 1) quantity = 1;
+                }
+
+                // Pass the quantity to addToCart
+                addToCart(product.pid, product.name, parseFloat(product.price), quantity);
             };
         }
 
@@ -268,21 +271,25 @@ function updateBreadcrumb(text) {
 /* =========================================
    PART 3: SHOPPING CART LOGIC
    ========================================= */
-
-function addToCart(pid, name, price) {
+function addToCart(pid, name, price, quantity = 1) {
     // Check if item is already in cart
     const existingItem = cart.find(item => item.pid == pid);
 
     if (existingItem) {
-        existingItem.qty += 1;
+        // Increment by the chosen quantity
+        existingItem.qty += quantity;
     } else {
-        cart.push({ pid: pid, name: name, price: price, qty: 1 });
+        // Add new item with the chosen quantity
+        cart.push({ pid: pid, name: name, price: price, qty: quantity });
     }
 
     saveCart();
     updateCartUI();
-    // Optional: alert(name + " added!");
+    
+    // Optional: Visual feedback
+    alert(`Added ${quantity} x ${name} to cart!`);
 }
+
 
 function saveCart() {
     localStorage.setItem('cart', JSON.stringify(cart));
