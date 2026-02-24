@@ -179,8 +179,8 @@ function renderProducts(products) {
         const price = parseFloat(p.price) || 0;
 
         // Thumbnail for list; fallback to full image; fallback to placeholder
-        const imgPath  = p.image ? `images/thumb_${p.image}` : 'images/placeholder.jpg';
-        const mainPath = p.image ? `images/${p.image}`       : 'images/placeholder.jpg';
+        const imgPath  = p.image ? `/public/images/thumb_${p.image}` : '/public/images/placeholder.jpg';
+        const mainPath = p.image ? `/public/images/${p.image}`       : '/public/images/placeholder.jpg';
 
         card.innerHTML = `
             <a href="product.html?id=${p.pid}" style="text-decoration:none; color:inherit; display:block;">
@@ -256,12 +256,12 @@ async function initProductPage() {
         const imgEl = document.querySelector(".product-detail-image img");
         if (imgEl) {
             imgEl.src = product.image
-                ? `images/${product.image}`
-                : 'images/placeholder.jpg';
+                ? `/public/images/${product.image}`
+                : '/public/images/placeholder.jpg';
             imgEl.alt = product.name;
             imgEl.onerror = function () {
                 this.onerror = null;
-                this.src = 'public/images/placeholder.jpg';
+                this.src = '/public/images/placeholder.jpg';
             };
         }
 
