@@ -584,3 +584,133 @@ aside ul li:hover {
 .checkout-btn:hover {
     background-color: #c0392b;
 }
+
+/* Category sidebar list items */
+.category-list li {
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+  }
+  
+  .category-list li:hover {
+    background-color: #f0f0f0;
+  }
+  
+  .category-list li.active {
+    font-weight: bold;
+    color: #007bff;
+  }
+  
+  /* =========================================
+   SHOPPING CART DROPDOWN
+========================================= */
+.cart-empty {
+    padding: 10px;
+    text-align: center;
+    color: #666;
+  }
+  
+  .cart-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .cart-th {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 2px solid #ddd;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  
+  .cart-td {
+    padding: 6px 10px;
+    font-size: 13px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .cart-qty-input {
+    width: 55px;
+    text-align: center;
+    padding: 3px 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  
+  .cart-remove-btn {
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #e00;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  
+  .cart-remove-btn:hover {
+    color: #a00;
+  }
+  
+  .cart-total {
+    padding: 8px 10px;
+    font-weight: bold;
+    border-top: 2px solid #ddd;
+    text-align: right;
+    font-size: 14px;
+    background: #fafafa;
+  }
+  
+  .cart-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    justify-content: flex-end;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+    border-radius: 0 0 6px 6px;
+  }
+  
+  .cart-checkout-btn {
+    cursor: pointer;
+    padding: 7px 14px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  
+  .cart-checkout-btn:hover {
+    background-color: #218838;
+  }
+  
+  .cart-clear-btn {
+    cursor: pointer;
+    padding: 7px 14px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  
+  .cart-clear-btn:hover {
+    background-color: #c82333;
+  }  
+  
+  /* Back to shop link on product page */
+.back-to-shop {
+    display: block;
+    margin-top: 20px;
+    color: #888;
+    text-decoration: none;
+  }
+  
+  .back-to-shop:hover {
+    color: #555;
+    text-decoration: underline;
+  }
+  
