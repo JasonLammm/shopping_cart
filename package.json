@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/JasonLammm/shopping_cart#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
     "multer": "^2.0.2",
