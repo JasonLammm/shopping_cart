@@ -20,6 +20,7 @@
   "homepage": "https://github.com/JasonLammm/shopping_cart#readme",
   "dependencies": {
     "express": "^5.2.1",
+    "express-session": "^1.19.0",
     "multer": "^2.0.2",
     "sharp": "^0.34.5",
     "sqlite3": "^5.1.7"

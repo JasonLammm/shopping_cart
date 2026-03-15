@@ -5,7 +5,11 @@
    - All innerHTML replaced with DOM methods
 ========================================= */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Fetch CSRF token FIRST before any state-changing request
+    const tokenRes = await fetch('/api/csrf-token');
+    const tokenData = await tokenRes.json();
+    csrfToken = tokenData.csrfToken;
     fetchCategories();
     fetchProducts();
   
@@ -29,7 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch('/api/categories', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken
+          },
           body: JSON.stringify({ name })
         });
         if (res.ok) {
@@ -104,7 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const method = isEdit ? 'PUT' : 'POST';
   
       try {
-        const res = await fetch(url, { method, body: formData });
+        // In prodForm submit handler — fetch call at the bottom
+        const res = await fetch(url, {
+          method,
+          headers: { 'x-csrf-token': csrfToken },  // ← header, NOT FormData field
+          body: formData
+        });
         if (res.ok) {
           resetProductForm();
           fetchProducts();
@@ -156,9 +168,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const newName = prompt(`New name for "${cat.name}":`, cat.name);
         if (!newName || !newName.trim()) return;
         fetch(`/api/categories/${cat.catid}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: newName.trim() })
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken          // ← add this line
+          },
+          body: JSON.stringify({ name: newName.trim() })
         }).then(res => res.ok
             ? fetchCategories()
             : res.json().then(d => alert('Error: ' + d.error))
@@ -290,7 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function deleteCategory(catid) {
     if (!confirm('Delete this category? Associated products will be unlinked.')) return;
     try {
-      const res = await fetch(`/api/categories/${catid}`, { method: 'DELETE' });
+      const res = await fetch(`/api/categories/${catid}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrfToken }  // ← add this
+      });      
       if (res.ok) {
         fetchCategories();
         fetchProducts();
@@ -308,7 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
   async function deleteProduct(pid) {
     if (!confirm('Delete this product?')) return;
     try {
-      const res = await fetch(`/api/products/${pid}`, { method: 'DELETE' });
+      const res = await fetch(`/api/products/${pid}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrfToken }  // ← add this
+      });      
       if (res.ok) {
         fetchProducts();
       } else {
