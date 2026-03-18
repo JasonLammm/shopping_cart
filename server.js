@@ -260,10 +260,15 @@ app.post('/api/login', validateCSRF, (req, res) => {
 // POST /api/logout
 app.post('/api/logout', validateCSRF, (req, res) => {
   req.session.destroy(() => {
-    res.clearCookie('connect.sid');
+    res.clearCookie('connect.sid', {
+      httpOnly: true,
+      sameSite: 'Strict',
+      secure: false       // match your session cookie config exactly
+    });
     res.json({ success: true });
   });
 });
+
 
 // POST /api/register
 app.post('/api/register', validateCSRF, async (req, res) => {
