@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt  = require('bcrypt');
 
 // 1. Connect to the database
 // 'shopping.db' will be created automatically in your project folder
@@ -12,6 +13,7 @@ const db = new sqlite3.Database('./shopping.db', (err) => {
         // This ensures tables are created after connection is established
         initCategories();
         initProducts();
+        initUsers();
     }
 });
 
@@ -64,6 +66,33 @@ function initProducts() {
         }
     });
 }
+
+function initUsers() {
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+      userid    INTEGER PRIMARY KEY AUTOINCREMENT,
+      email     TEXT    NOT NULL UNIQUE,
+      password  TEXT    NOT NULL,
+      name      TEXT    NOT NULL,
+      isAdmin   INTEGER NOT NULL DEFAULT 0
+    )`, (err) => {
+      if (err) {
+        console.log('Users table error: ' + err);
+      } else {
+        // Pre-hash passwords with salt rounds = 12
+        const adminHash = bcrypt.hashSync('Admin@1234', 12);
+        const userHash  = bcrypt.hashSync('User@1234', 12);
+  
+        const insert = `INSERT OR IGNORE INTO users
+                        (userid, email, password, name, isAdmin)
+                        VALUES (?, ?, ?, ?, ?)`;
+  
+        db.run(insert, [1, 'admin@shop.com',  adminHash, 'Admin',   1]);
+        db.run(insert, [2, 'alice@shop.com',  userHash,  'Alice',   0]);
+  
+        console.log('Users initialized.');
+      }
+    });
+  }
 
 // Export the db object to use in server.js
 module.exports = db;

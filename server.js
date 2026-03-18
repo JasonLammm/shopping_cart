@@ -11,6 +11,7 @@ const sharp   = require('sharp');
 const crypto  = require('crypto');         // ← NEW
 const session = require('express-session'); // ← NEW
 const db      = require('./database');
+const bcrypt = require('bcrypt');
 
 const app = express();
 app.disable('x-powered-by');
@@ -177,6 +178,66 @@ app.get('/admin', (req, res) => {
 
 app.get('/admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Serve login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// POST /api/login
+app.post('/api/login', validateCSRF, (req, res) => {
+  const email    = stripHTML(req.body.email    || '').trim().toLowerCase();
+  const password = req.body.password || '';
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
+
+  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
+    if (err) return res.status(500).json({ error: 'Database error.' });
+
+    // Generic error — never reveal which field is wrong
+    if (!user) {
+      return res.status(401).json({ error: 'Either email or password is incorrect.' });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ error: 'Either email or password is incorrect.' });
+    }
+
+    // Regenerate session to prevent session fixation (Point 5 sub-bullet)
+    req.session.regenerate((regenErr) => {
+      if (regenErr) return res.status(500).json({ error: 'Session error.' });
+
+      req.session.userId  = user.userid;
+      req.session.name    = user.name;
+      req.session.isAdmin = user.isAdmin === 1;
+
+      // Rotate CSRF token after login
+      req.session.csrfToken = require('crypto').randomBytes(32).toString('hex');
+
+      res.json({ success: true, name: user.name, isAdmin: user.isAdmin === 1 });
+    });
+  });
+});
+
+// POST /api/logout
+app.post('/api/logout', validateCSRF, (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.json({ success: true });
+  });
+});
+
+// GET /api/me — tell the frontend who is logged in
+app.get('/api/me', (req, res) => {
+  if (req.session.userId) {
+    res.json({ name: req.session.name, isAdmin: req.session.isAdmin });
+  } else {
+    res.json({ name: null, isAdmin: false });
+  }
 });
 
 // =========================================
