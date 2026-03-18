@@ -54,6 +54,36 @@ function validateCSRF(req, res, next) {
   next();
 }
 
+// Middleware: must be logged in
+function requireAuth(req, res, next) {
+  if (!req.session.userId) {
+    // API routes → return JSON error
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Login required.' });
+    }
+    // Page routes → redirect to login
+    return res.redirect('/login');
+  }
+  next();
+}
+
+// Middleware: must be admin
+function requireAdmin(req, res, next) {
+  if (!req.session.userId) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Login required.' });
+    }
+    return res.redirect('/login');
+  }
+  if (!req.session.isAdmin) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(403).json({ error: 'Admin access required.' });
+    }
+    return res.redirect('/');
+  }
+  next();
+}
+
 // =========================================
 // [PHASE 4] Content Security Policy Header
 // =========================================
@@ -172,11 +202,11 @@ app.get('/product.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'product.html'));
 });
 
-app.get('/admin', (req, res) => {
+app.get('/admin', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/admin.html', (req, res) => {
+app.get('/admin.html', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
@@ -296,7 +326,7 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-app.post('/api/categories', validateCSRF, (req, res) => {  // ← validateCSRF added
+app.post('/api/categories', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
   const name = validateCategoryName(req.body.name);
   if (!name) {
     return res.status(400).json({
@@ -314,7 +344,7 @@ app.post('/api/categories', validateCSRF, (req, res) => {  // ← validateCSRF a
   });
 });
 
-app.put('/api/categories/:catid', validateCSRF, (req, res) => {  // ← validateCSRF added
+app.put('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
   const catid = parseInt(req.params.catid);
   if (isNaN(catid)) return res.status(400).json({ error: 'Invalid category ID.' });
   const name = validateCategoryName(req.body.name);
@@ -326,7 +356,7 @@ app.put('/api/categories/:catid', validateCSRF, (req, res) => {  // ← validate
   });
 });
 
-app.delete('/api/categories/:catid', validateCSRF, (req, res) => {  // ← validateCSRF added
+app.delete('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
   const catid = parseInt(req.params.catid);
   if (isNaN(catid)) {
     return res.status(400).json({ error: 'Invalid category ID.' });
@@ -413,7 +443,7 @@ app.get('/api/product/:pid', (req, res) => {
 // The _csrf field in FormData is read by express.urlencoded BEFORE multer runs
 // Actually for multipart/form-data, we need a different approach:
 // validateCSRF reads from req.headers['x-csrf-token'] for FormData routes
-app.post('/api/products', validateCSRF, upload.single('image'), (req, res) => {  // ← validateCSRF added
+app.post('/api/products', validateCSRF, requireAdmin, upload.single('image'), (req, res) => {  // ← validateCSRF added
   const { errors, cleaned } = validateProduct(req.body);
   if (errors.length > 0) {
     if (req.file) fs.unlink(req.file.path, () => {});
@@ -449,7 +479,7 @@ app.post('/api/products', validateCSRF, upload.single('image'), (req, res) => { 
   );
 });
 
-app.put('/api/products/:pid', validateCSRF, upload.single('image'), (req, res) => {  // ← validateCSRF added
+app.put('/api/products/:pid', validateCSRF, requireAdmin, upload.single('image'), (req, res) => {  // ← validateCSRF added
   const pid = parseInt(req.params.pid);
   if (isNaN(pid) || pid < 1) {
     return res.status(400).json({ error: 'Invalid product ID.' });
@@ -504,7 +534,7 @@ app.put('/api/products/:pid', validateCSRF, upload.single('image'), (req, res) =
   }
 });
 
-app.delete('/api/products/:pid', validateCSRF, (req, res) => {  // ← validateCSRF added
+app.delete('/api/products/:pid', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
   const pid = parseInt(req.params.pid);
   if (isNaN(pid) || pid < 1) {
     return res.status(400).json({ error: 'Invalid product ID.' });

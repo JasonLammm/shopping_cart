@@ -5,6 +5,18 @@
    - All innerHTML replaced with DOM methods
 ========================================= */
 
+// ← ADD THESE at the very top of admin.js
+let csrfToken = '';
+
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, options);
+  if (res.status === 401 || res.status === 403) {
+    window.location.href = '/login';
+    return null;
+  }
+  return res;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Fetch CSRF token FIRST before any state-changing request
     const tokenRes = await fetch('/api/csrf-token');
@@ -31,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
   
       try {
-        const res = await fetch('/api/categories', {
+        const res = await apiFetch('/api/categories', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -39,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           },
           body: JSON.stringify({ name })
         });
+        if (!res) return;
         if (res.ok) {
           nameInput.value = '';
           fetchCategories();
@@ -112,11 +125,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   
       try {
         // In prodForm submit handler — fetch call at the bottom
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
           method,
           headers: { 'x-csrf-token': csrfToken },  // ← header, NOT FormData field
           body: formData
         });
+        if (!res) return;
         if (res.ok) {
           resetProductForm();
           fetchProducts();
@@ -167,17 +181,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         editBtn.addEventListener('click', () => {
         const newName = prompt(`New name for "${cat.name}":`, cat.name);
         if (!newName || !newName.trim()) return;
-        fetch(`/api/categories/${cat.catid}`, {
+        apiFetch(`/api/categories/${cat.catid}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'x-csrf-token': csrfToken          // ← add this line
+            'x-csrf-token': csrfToken
           },
           body: JSON.stringify({ name: newName.trim() })
-        }).then(res => res.ok
+        }).then(res => {
+          if (!res) return;   // ← null check for 401/403
+          res.ok
             ? fetchCategories()
-            : res.json().then(d => alert('Error: ' + d.error))
-        );
+            : res.json().then(d => alert('Error: ' + d.error));
+          });
         });
         tdActions.appendChild(editBtn);          // ← add edit first
         tdActions.appendChild(document.createTextNode(' '));
@@ -305,10 +321,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function deleteCategory(catid) {
     if (!confirm('Delete this category? Associated products will be unlinked.')) return;
     try {
-      const res = await fetch(`/api/categories/${catid}`, {
+      const res = await apiFetch(`/api/categories/${catid}`, {
         method: 'DELETE',
         headers: { 'x-csrf-token': csrfToken }  // ← add this
       });      
+      if(!res) return;
       if (res.ok) {
         fetchCategories();
         fetchProducts();
@@ -326,10 +343,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function deleteProduct(pid) {
     if (!confirm('Delete this product?')) return;
     try {
-      const res = await fetch(`/api/products/${pid}`, {
+      const res = await apiFetch(`/api/products/${pid}`, {
         method: 'DELETE',
         headers: { 'x-csrf-token': csrfToken }  // ← add this
       });      
+      if (!res) return;
       if (res.ok) {
         fetchProducts();
       } else {
