@@ -681,4 +681,56 @@ aside ul li:hover {
     color: #555;
     text-decoration: underline;
   }
+  /* --- USER STATUS (Header) --- */
+#user-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  .user-greeting {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-light);
+  }
+  
+  /* Change Password link — matches nav a style */
+  .user-action-link {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: rgba(102, 126, 234, 0.08);
+    transition: all 0.2s ease;
+  }
+  
+  .user-action-link:hover {
+    background: rgba(102, 126, 234, 0.18);
+    transform: translateY(-1px);
+  }
+  
+  /* Logout button — pill shaped, matches cart-wrapper style */
+  .user-logout-btn {
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: 'Poppins', sans-serif;
+    color: white;
+    background: var(--primary-gradient);
+    border: none;
+    border-radius: 20px;
+    padding: 6px 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+  }
+  
+  .user-logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  }
+  
   

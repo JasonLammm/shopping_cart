@@ -4,31 +4,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!el) return;
 
     if (data.name) {
-      // Show username
       const nameSpan = document.createElement('span');
+      nameSpan.className   = 'user-greeting';
       nameSpan.textContent = `Logged in as: ${data.name}`;
 
       const changePassLink = document.createElement('a');
       changePassLink.href        = '/change-password';
       changePassLink.textContent = 'Change Password';
-      changePassLink.style.cssText = 'font-size:0.8rem; font-weight:600; color:#667eea; margin-right:8px; text-decoration:none;';
+      changePassLink.className   = 'user-action-link';
 
-      // Logout button
       const logoutBtn = document.createElement('button');
       logoutBtn.textContent = 'Logout';
+      logoutBtn.className   = 'user-logout-btn';
       logoutBtn.addEventListener('click', async () => {
         try {
           const tokenRes = await fetch('/api/csrf-token');
           const { csrfToken } = await tokenRes.json();
-
           const res = await fetch('/api/logout', {
             method: 'POST',
             headers: { 'x-csrf-token': csrfToken }
           });
-
-          if (res.ok) {
-            window.location.href = '/login';
-          }
+          if (res.ok) window.location.href = '/login';
         } catch (err) {
           console.error('Logout error:', err);
         }
@@ -39,13 +35,14 @@ document.addEventListener('DOMContentLoaded', () => {
       el.appendChild(logoutBtn);
 
     } else {
-      // Show Guest + login link
       const guestSpan = document.createElement('span');
-      guestSpan.textContent = 'Guest | ';
+      guestSpan.className   = 'user-greeting';
+      guestSpan.textContent = 'Guest';
 
       const link = document.createElement('a');
-      link.href = '/login';
+      link.href      = '/login';
       link.textContent = 'Login';
+      link.className = 'user-action-link';
 
       el.appendChild(guestSpan);
       el.appendChild(link);
