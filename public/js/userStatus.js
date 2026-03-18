@@ -8,6 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const nameSpan = document.createElement('span');
       nameSpan.textContent = `Logged in as: ${data.name}`;
 
+      const changePassLink = document.createElement('a');
+      changePassLink.href        = '/change-password';
+      changePassLink.textContent = 'Change Password';
+      changePassLink.style.cssText = 'font-size:0.8rem; font-weight:600; color:#667eea; margin-right:8px; text-decoration:none;';
+
       // Logout button
       const logoutBtn = document.createElement('button');
       logoutBtn.textContent = 'Logout';
@@ -30,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       el.appendChild(nameSpan);
+      el.appendChild(changePassLink);
       el.appendChild(logoutBtn);
 
     } else {

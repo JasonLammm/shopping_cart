@@ -193,3 +193,15 @@
     }
   }
   
+/* ── Success message (used in change-password page) ── */
+.success-msg {
+    color: #1e8449;
+    font-size: 0.85rem;
+    background: #eafaf1;
+    border: 1px solid #a9dfbf;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    display: none;
+  }
+  

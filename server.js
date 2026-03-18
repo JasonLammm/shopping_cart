@@ -219,6 +219,11 @@ app.get('/register', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 
+app.get('/change-password', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'change-password.html'));
+});
+
+
 // POST /api/login
 app.post('/api/login', validateCSRF, (req, res) => {
   const email    = stripHTML(req.body.email    || '').trim().toLowerCase();
@@ -269,6 +274,47 @@ app.post('/api/logout', validateCSRF, (req, res) => {
   });
 });
 
+app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => {
+  const currentPassword = req.body.currentPassword || '';
+  const newPassword     = req.body.newPassword     || '';
+  const confirmPassword = req.body.confirmPassword || '';
+
+  if (!currentPassword || !newPassword || !confirmPassword)
+    return res.status(400).json({ error: 'All fields are required.' });
+
+  if (newPassword !== confirmPassword)
+    return res.status(400).json({ error: 'New passwords do not match.' });
+
+  if (newPassword.length < 8)
+    return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+
+  if (newPassword === currentPassword)
+    return res.status(400).json({ error: 'New password must differ from current password.' });
+
+  db.get('SELECT * FROM users WHERE userid = ?', [req.session.userId], async (err, user) => {
+    if (err || !user) return res.status(500).json({ error: 'User not found.' });
+
+    const match = await bcrypt.compare(currentPassword, user.password);
+    if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
+
+    const hash = await bcrypt.hash(newPassword, 12);
+    db.run('UPDATE users SET password = ? WHERE userid = ?', [hash, req.session.userId],
+      function (updateErr) {
+        if (updateErr) return res.status(500).json({ error: 'Database error.' });
+
+        // Logout after password change
+        req.session.destroy(() => {
+          res.clearCookie('connect.sid', {
+            httpOnly: true,
+            sameSite: 'Strict',
+            secure: false
+          });
+          res.json({ success: true });
+        });
+      }
+    );
+  });
+});
 
 // POST /api/register
 app.post('/api/register', validateCSRF, async (req, res) => {
