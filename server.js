@@ -185,6 +185,10 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
 // POST /api/login
 app.post('/api/login', validateCSRF, (req, res) => {
   const email    = stripHTML(req.body.email    || '').trim().toLowerCase();
@@ -229,6 +233,45 @@ app.post('/api/logout', validateCSRF, (req, res) => {
     res.clearCookie('connect.sid');
     res.json({ success: true });
   });
+});
+
+// POST /api/register
+app.post('/api/register', validateCSRF, async (req, res) => {
+  const name     = stripHTML(req.body.name     || '').trim();
+  const email    = stripHTML(req.body.email    || '').trim().toLowerCase();
+  const password = req.body.password            || '';
+  const confirm  = req.body.confirmPassword     || '';
+
+  if (!name || !email || !password || !confirm)
+    return res.status(400).json({ error: 'All fields are required.' });
+
+  if (password !== confirm)
+    return res.status(400).json({ error: 'Passwords do not match.' });
+
+  if (password.length < 8)
+    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email))
+    return res.status(400).json({ error: 'Invalid email address.' });
+
+  try {
+    const hash = await bcrypt.hash(password, 12);
+    db.run(
+      'INSERT INTO users (email, password, name, isAdmin) VALUES (?, ?, ?, 0)',
+      [email, hash, name],
+      function (err) {
+        if (err) {
+          if (err.message.includes('UNIQUE'))
+            return res.status(409).json({ error: 'An account with that email already exists.' });
+          return res.status(500).json({ error: 'Database error.' });
+        }
+        res.status(201).json({ success: true });
+      }
+    );
+  } catch (err) {
+    res.status(500).json({ error: 'Server error.' });
+  }
 });
 
 // GET /api/me — tell the frontend who is logged in

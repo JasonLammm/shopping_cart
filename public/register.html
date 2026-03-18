@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register – My Shop</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/register.css">
+</head>
+<body>
+
+  <header>
+    <a href="/" class="brand">My Shop</a>
+  </header>
+
+  <main>
+    <div class="login-card">
+      <h2>Create Account</h2>
+
+      <p id="register-error" class="error-msg"></p>
+
+      <form id="register-form" novalidate>
+        <div class="form-group">
+          <label for="reg-name">Name</label>
+          <input type="text" id="reg-name" required maxlength="100" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" required maxlength="255" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" required maxlength="128" minlength="8" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="reg-confirm">Confirm Password</label>
+          <input type="password" id="reg-confirm" required maxlength="128" autocomplete="new-password">
+        </div>
+        <button type="submit" class="login-btn">Register</button>
+      </form>
+
+      <p style="text-align:center; margin-top:16px; font-size:0.85rem;">
+        Already have an account? <a href="/login">Login</a>
+      </p>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 My Shop. All rights reserved.</p>
+  </footer>
+
+  <script src="/js/register.js"></script>
+</body>
+</html>
