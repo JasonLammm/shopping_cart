@@ -15,6 +15,7 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 app.disable('x-powered-by');
+app.set('trust proxy', 1)
 const PORT = 3001;
 
 // =========================================
@@ -26,7 +27,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false,           // set to true once HTTPS is live
+    secure: true,           // set to true once HTTPS is live
     sameSite: 'Strict',      // Defence 2: blocks cross-site cookie sending
     maxAge: 1000 * 60 * 60 * 24 * 2  // 2 days
   }
@@ -274,7 +275,7 @@ app.post('/api/logout', validateCSRF, (req, res) => {
     res.clearCookie('connect.sid', {
       httpOnly: true,
       sameSite: 'Strict',
-      secure: false       // match your session cookie config exactly
+      secure: true       // match your session cookie config exactly
     });
     res.json({ success: true });
   });
@@ -314,7 +315,7 @@ app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => 
           res.clearCookie('connect.sid', {
             httpOnly: true,
             sameSite: 'Strict',
-            secure: false
+            secure: true
           });
           res.json({ success: true });
         });
