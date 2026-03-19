@@ -110,6 +110,12 @@ app.use((req, res, next) => {
 // =========================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  if (req.path === '/admin.html') {
+    return res.redirect('/admin');
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
@@ -285,8 +291,9 @@ app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => 
   if (newPassword !== confirmPassword)
     return res.status(400).json({ error: 'New passwords do not match.' });
 
-  if (newPassword.length < 8)
-    return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  if (!passwordRegex.test(newPassword))
+    return res.status(400).json({ error: 'New password must be at least 8 characters and include uppercase, lowercase, number, and special character.' });  
 
   if (newPassword === currentPassword)
     return res.status(400).json({ error: 'New password must differ from current password.' });
@@ -329,8 +336,9 @@ app.post('/api/register', validateCSRF, async (req, res) => {
   if (password !== confirm)
     return res.status(400).json({ error: 'Passwords do not match.' });
 
-  if (password.length < 8)
-    return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+  if (!passwordRegex.test(password))
+    return res.status(400).json({ error: 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.' });
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email))
@@ -427,7 +435,10 @@ app.delete('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {
 // API ROUTES — Products
 // =========================================
 app.get('/api/products', (req, res) => {
-  const catid = req.query.catid;
+  if (!/^\d+$/.test(req.query.catid)) {  // ← add this check
+    return res.status(400).json({ error: "Invalid category ID." });
+  }
+  const catid = parseInt(req.query.catid);
   if (catid !== undefined) {
     const catidInt = parseInt(catid);
     if (isNaN(catidInt) || catidInt < 1) {
@@ -467,9 +478,12 @@ app.get('/api/products', (req, res) => {
 });
 
 app.get('/api/product/:pid', (req, res) => {
+  if (!/^\d+$/.test(req.params.pid)) {  // ← NEW: reject anything that isn't pure digits
+    return res.status(400).json({ error: "Invalid product ID." });
+  }
   const pid = parseInt(req.params.pid);
-  if (isNaN(pid) || pid < 1) {
-    return res.status(400).json({ error: 'Invalid product ID.' });
+  if (pid <= 0) {
+    return res.status(400).json({ error: "Invalid product ID." });
   }
   const sql = `
     SELECT p.pid, p.catid, p.name, p.price, p.description, p.image,
