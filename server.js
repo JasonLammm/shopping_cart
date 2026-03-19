@@ -435,11 +435,11 @@ app.delete('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {
 // API ROUTES — Products
 // =========================================
 app.get('/api/products', (req, res) => {
-  if (!/^\d+$/.test(req.query.catid)) {  // ← add this check
+  if (req.query.catid !== undefined && !/^\d+$/.test(req.query.catid)) {
     return res.status(400).json({ error: "Invalid category ID." });
-  }
+  }  
   const catid = parseInt(req.query.catid);
-  if (catid !== undefined) {
+  if (req.query.catid !== undefined) {
     const catidInt = parseInt(catid);
     if (isNaN(catidInt) || catidInt < 1) {
       return res.status(400).json({ error: 'Invalid category ID.' });
