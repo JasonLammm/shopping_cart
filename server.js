@@ -86,7 +86,7 @@ function requireAdmin(req, res, next) {
 }
 
 // =========================================
-// [PHASE 4] Content Security Policy Header
+// [PHASE 4] Security Headers
 // =========================================
 app.use((req, res, next) => {
   res.setHeader(
@@ -94,15 +94,22 @@ app.use((req, res, next) => {
     [
       "default-src 'self'",
       "script-src 'self'",
-      "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
+      "style-src 'self' https://fonts.googleapis.com",  // FIXED: removed 'unsafe-inline'
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data:",
       "connect-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self'"
+      "form-action 'self'",
+      "upgrade-insecure-requests"                       // NEW
     ].join('; ')
   );
+
+  res.setHeader('X-Content-Type-Options', 'nosniff');   // NEW
+  res.setHeader('X-Frame-Options', 'DENY');             // NEW
+  // Uncomment ONLY after TLS cert is live on server:
+  // res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+
   next();
 });
 
@@ -637,6 +644,15 @@ app.use((err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
   next(err);
+});
+
+// =========================================
+// GLOBAL ERROR HANDLER
+// =========================================
+app.use((err, req, res, next) => {
+  console.error('[Unhandled Error]', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'An internal server error occurred.' });
 });
 
 // =========================================

@@ -1,0 +1,171 @@
+# IERG4210 Web Security Project — Full-Stack E-Commerce Application
+
+**Student ID:** 1155192972
+**Course:** IERG4210 — Web Security, CUHK
+**Live Site:** [https://s14.ierg4210.iecuhk.cc](https://s14.ierg4210.iecuhk.cc)
+**Server:** Azure VM (Ubuntu 24.04 LTS) · `20.74.81.143`
+
+***
+
+## Executive Summary
+
+A production-deployed, security-hardened full-stack e-commerce web application built from scratch. The project covers the complete software engineering lifecycle — from database schema design and REST API development to cloud deployment, reverse proxy configuration, and TLS certificate provisioning. All security mechanisms including CSRF protection, secure session management, HTTPS enforcement, and input validation are implemented **from first principles** without relying on high-level security frameworks.
+
+***
+
+## Technical Skills Demonstrated
+
+### Backend Development
+
+- Built a **RESTful API server** using **Node.js + Express.js** handling full CRUD operations for products, categories, and users
+- Designed and implemented a **SQLite relational database** with a normalized schema linking categories to products, and users with role-based permission fields
+- Wrote custom **Express middleware functions** for authentication gating, admin authorization, and CSRF token validation — all applied selectively per route
+- Handled **multipart file uploads** using **Multer** with server-side image validation, thumbnail management, and structured file storage under a dedicated public images directory
+
+
+### Security Engineering
+
+- Implemented a **stateless CSRF protection system from scratch** using `crypto.randomBytes()` nonces stored in server-side sessions — no external CSRF library used
+- Manually configured **HttpOnly, Secure, and SameSite=Strict** cookie flags to defend against XSS-based cookie theft and cross-site request forgery
+- Applied **server-side input validation** on all mutation endpoints to sanitize user-supplied data before any database operation
+- Configured Nginx to **suppress server fingerprints** by hiding the Nginx version string and the Express `X-Powered-By` header, reducing the application's attack surface
+
+
+### DevOps \& Cloud Deployment
+
+- Provisioned and managed a **Microsoft Azure Ubuntu 24.04 VM** including SSH key-based access, user account management, and system package updates
+- Configured **Nginx as a reverse proxy** with separate rules for static asset serving, WebSocket upgrade support, and security hardening directives
+- Issued and deployed a **Let's Encrypt TLS certificate** using Certbot with automatic renewal managed by a `systemd` timer
+- Managed the Node.js application lifecycle using **PM2**, including crash auto-restart, log management, and persistence across VM reboots via startup scripts
+- Deployed application files securely via **SCP over SSH** from local development machine to the remote production server
+
+
+### Networking \& Protocol Understanding
+
+- Configured an **HTTP → HTTPS 301 permanent redirect** at the Nginx layer, ensuring all unencrypted traffic is upgraded before reaching the application
+- Understood and resolved a **reverse proxy trust chain issue** — correctly configuring the `X-Forwarded-Proto` forwarding header in Nginx and enabling Express trust proxy mode so the `Secure` cookie flag is correctly applied when sitting behind a proxy
+- Verified TLS handshake negotiation (TLSv1.3), certificate chain validity, and secure cookie transmission using **curl with verbose inspection flags**
+
+***
+
+## System Architecture
+
+```
+User Browser (HTTPS)
+        │
+        ▼
+  ┌─────────────────────────────┐
+  │         Nginx               │
+  │  - Port 80 → 301 redirect   │
+  │  - Port 443 SSL termination │
+  │  - Static file serving      │
+  │  - Reverse proxy to :3001   │
+  │  - X-Forwarded-Proto header │
+  └──────────────┬──────────────┘
+                 │ proxy_pass
+                 ▼
+  ┌─────────────────────────────┐
+  │      Express.js (PM2)       │
+  │  - REST API routes          │
+  │  - Session middleware       │
+  │  - CSRF middleware          │
+  │  - Auth middleware          │
+  │  - Multer file uploads      │
+  └──────────────┬──────────────┘
+                 │
+                 ▼
+  ┌─────────────────────────────┐
+  │         SQLite DB           │
+  │  - categories               │
+  │  - products                 │
+  │  - users                    │
+  └─────────────────────────────┘
+```
+
+
+***
+
+## Security Implementation (In Depth)
+
+### 1. HTTPS / TLS 1.3
+
+A trusted TLS certificate was issued via **Let's Encrypt (Certbot)** and configured in Nginx. The certificate auto-renews via a `systemd` timer without manual intervention. TLS 1.3 is negotiated using `AEAD-CHACHA20-POLY1305-SHA256` cipher suite, providing both performance and strong encryption.
+
+### 2. HTTP Strict Transport (301 Redirect)
+
+All HTTP traffic is permanently redirected to HTTPS at the Nginx layer before the request ever reaches the Node.js application. This ensures no sensitive data is ever transmitted over an unencrypted connection, even if a user manually types `http://` in the browser.
+
+### 3. Secure Session Cookies
+
+Sessions are managed via `express-session` with all three mandatory security flags set explicitly. The session secret is generated using `crypto.randomBytes(64)` at startup for strong entropy. The `trust proxy` setting is enabled at the very top of the application — before all middleware — so Express correctly recognises HTTPS connections forwarded through Nginx and applies the `Secure` cookie flag.
+
+
+| Cookie Flag | Purpose |
+| :-- | :-- |
+| `HttpOnly` | Blocks JavaScript from reading the cookie, preventing XSS-based session theft |
+| `Secure` | Ensures the cookie is only transmitted over HTTPS connections |
+| `SameSite=Strict` | Prevents the cookie from being sent on any cross-site request |
+| `maxAge: 2 days` | Limits the session lifetime to reduce the window of a stolen session |
+
+### 4. Custom CSRF Protection (Synchronizer Token Pattern)
+
+A cryptographic nonce is generated once per session using `crypto.randomBytes(32)` and stored server-side in the session object. The frontend fetches this token from a dedicated API endpoint and attaches it to every state-changing request — either in the request body or as a custom header. A dedicated middleware function validates the submitted token against the session-stored value on all `POST`, `PUT`, and `DELETE` routes, rejecting mismatches with a `403 Forbidden` response. No external CSRF library is used — the entire mechanism is handwritten.
+
+### 5. Nginx Security Hardening
+
+The Nginx configuration suppresses version disclosure, disables directory listing, hides the Express `X-Powered-By` header, and forwards the originating protocol via `X-Forwarded-Proto` so Express can correctly determine whether the connection is HTTPS. These settings are applied in both the port 80 and port 443 server blocks.
+
+***
+
+## REST API Endpoints
+
+| Method | Endpoint | Auth Required | Description |
+| :-- | :-- | :-- | :-- |
+| `GET` | `/api/csrf-token` | None | Fetch CSRF token for the current session |
+| `POST` | `/api/login` | None | Authenticate user and establish session |
+| `POST` | `/api/register` | None | Register a new user account |
+| `POST` | `/api/logout` | User | Destroy the current session |
+| `POST` | `/api/change-password` | User | Change authenticated user's own password |
+| `GET` | `/api/categories` | None | List all product categories |
+| `POST` | `/api/categories` | Admin | Create a new category |
+| `PUT` | `/api/categories/:id` | Admin | Update an existing category |
+| `DELETE` | `/api/categories/:id` | Admin | Delete a category |
+| `GET` | `/api/products` | None | List products, optionally filtered by category |
+| `POST` | `/api/products` | Admin | Create a new product with image upload |
+| `PUT` | `/api/products/:id` | Admin | Update an existing product |
+| `DELETE` | `/api/products/:id` | Admin | Delete a product |
+
+
+***
+
+## Project File Structure
+
+| Path | Description |
+| :-- | :-- |
+| `server.js` | Main Express application — routes, middleware, session, CSRF |
+| `database.js` | SQLite database initialization and schema setup |
+| `package.json` | Node.js dependency manifest |
+| `shopping.db` | SQLite database file |
+| `nginx-config.txt` | Nginx configuration backup |
+| `public/index.html` | Homepage and product listing |
+| `public/product.html` | Individual product detail page |
+| `public/login.html` | User login page |
+| `public/register.html` | User registration page |
+| `public/admin.html` | Admin panel (protected) |
+| `public/change-password.html` | Password change page |
+| `public/js/` | All frontend JavaScript modules |
+| `public/css/` | All stylesheets |
+| `public/images/` | Product images and thumbnails |
+
+
+***
+
+## Deployment Process
+
+1. **Upload files** to the server securely via SCP using SSH key-based authentication
+2. **Install all Node.js dependencies** from within the `/var/www/html` application directory using npm
+3. **Start the application** using PM2 with a named process, then save the process list and register the PM2 startup hook so the app survives VM reboots
+4. **Issue a TLS certificate** for the domain using Certbot in Nginx plugin mode, which automatically configures the SSL directives in the Nginx config
+5. **Reload Nginx** after verifying the configuration syntax to apply all changes without downtime
+
+***
