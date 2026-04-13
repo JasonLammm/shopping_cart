@@ -387,6 +387,12 @@ function updateCartUI() {
     }
   
     // ── Items table ───────────────────────────────────────────────────
+    const checkoutForm = document.createElement('form');
+    checkoutForm.id = 'checkout-form';
+    checkoutForm.addEventListener('submit', (e) => {
+      e.preventDefault(); // prevent default HTML form submission
+    });
+    listContainer.appendChild(checkoutForm);
     const table = document.createElement('table');
     table.className = 'cart-table';       // handles width + border-collapse
   
@@ -460,13 +466,13 @@ function updateCartUI() {
     });
   
     table.appendChild(tbody);
-    listContainer.appendChild(table);
+    checkoutForm.appendChild(table);
   
     // ── Total row ─────────────────────────────────────────────────────
     const totalRow = document.createElement('div');
     totalRow.className = 'cart-total';    // handles padding + font + border
     totalRow.textContent = `Total: $${total.toFixed(1)}`;
-    listContainer.appendChild(totalRow);
+    checkoutForm.appendChild(totalRow);
   
     // ── Action buttons ────────────────────────────────────────────────
     const btnRow = document.createElement('div');
@@ -545,7 +551,7 @@ function updateCartUI() {
 
     btnRow.appendChild(checkoutBtn);
     btnRow.appendChild(clearBtn);
-    listContainer.appendChild(btnRow);
+    checkoutForm.appendChild(btnRow);
 }  
 
 // Initialize cart dropdown toggle behaviour

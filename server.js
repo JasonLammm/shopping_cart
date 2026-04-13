@@ -117,7 +117,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   // Uncomment after TLS is live:
-  // res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
 
@@ -350,6 +350,7 @@ app.post('/api/login', validateCSRF, (req, res) => {
 
       req.session.userId  = user.userid;
       req.session.name    = user.name;
+      req.session.email   = user.email;
       req.session.isAdmin = user.isAdmin === 1;
       req.session.csrfToken = crypto.randomBytes(32).toString('hex');
 
@@ -755,7 +756,7 @@ app.post('/api/checkout', validateCSRF, requireAuth, async (req, res) => {
       db.run(
         `INSERT INTO orders (userid, email, currency, merchant_email, salt, digest, total, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-        [req.session.userId, req.session.name, CURRENCY, MERCHANT_EMAIL, salt, digest, total],
+        [req.session.userId, req.session.email, CURRENCY, MERCHANT_EMAIL, salt, digest, total],
         function (err) { err ? reject(err) : resolve(this.lastID); }
       );
     });
@@ -782,7 +783,7 @@ app.post('/api/checkout', validateCSRF, requireAuth, async (req, res) => {
       })),
       mode       : 'payment',
       success_url: `${YOUR_DOMAIN}/orders?success=1`,
-      cancel_url : `${YOUR_DOMAIN}/?cancelled=1`,
+      cancel_url: `${YOUR_DOMAIN}/orders?cancelled=1`,
       metadata   : { orderid: String(orderid), digest }
     });
 
@@ -814,9 +815,14 @@ app.get('/api/my-orders', requireAuth, (req, res) => {
      JOIN order_items oi ON o.orderid = oi.orderid
      LEFT JOIN products p ON oi.pid = p.pid
      WHERE o.userid = ?
-     ORDER BY o.created_at DESC
-     LIMIT 50`,
-    [req.session.userId],
+       AND o.orderid IN (
+         SELECT orderid FROM orders
+         WHERE userid = ?
+         ORDER BY created_at DESC
+         LIMIT 5
+       )
+     ORDER BY o.created_at DESC`,
+    [req.session.userId, req.session.userId],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error.' });
 
@@ -840,7 +846,7 @@ app.get('/api/my-orders', requireAuth, (req, res) => {
         });
       }
 
-      const orders = [...ordersMap.values()].slice(0, 5);
+      const orders = [...ordersMap.values()];
       res.json(orders);
     }
   );

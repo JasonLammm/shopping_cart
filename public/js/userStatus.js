@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
       changePassLink.textContent = 'Change Password';
       changePassLink.className   = 'user-action-link';
 
+      const ordersLink = document.createElement('a');
+      ordersLink.href      = '/orders';
+      ordersLink.textContent = 'My Orders';
+      ordersLink.className = 'user-action-link';
+
       const logoutBtn = document.createElement('button');
       logoutBtn.textContent = 'Logout';
       logoutBtn.className   = 'user-logout-btn';
@@ -32,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       el.appendChild(nameSpan);
       el.appendChild(changePassLink);
+      el.appendChild(ordersLink);
       el.appendChild(logoutBtn);
 
     } else {
