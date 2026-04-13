@@ -470,20 +470,79 @@ function updateCartUI() {
   
     // ── Action buttons ────────────────────────────────────────────────
     const btnRow = document.createElement('div');
-    btnRow.className = 'cart-actions';    // handles display:flex + gap + padding
-  
+    btnRow.className = 'cart-actions';
+
     const checkoutBtn = document.createElement('button');
     checkoutBtn.className = 'cart-checkout-btn';
     checkoutBtn.textContent = 'Checkout';
-    checkoutBtn.addEventListener('click', () => alert('Checkout coming soon!'));
-  
+    checkoutBtn.addEventListener('click', async () => {
+
+      // 1. Must be logged in
+      const meRes = await fetch('/api/me');
+      const me    = await meRes.json();
+      if (!me.name) {
+        alert('Please log in before checking out.');
+        window.location.href = '/login';
+        return;
+      }
+
+      // 2. Confirm cart is not empty
+      if (cart.length === 0) {
+        alert('Your cart is empty.');
+        return;
+      }
+
+      checkoutBtn.textContent = 'Redirecting...';
+      checkoutBtn.disabled    = true;
+
+      try {
+        // 3. Get CSRF token
+        const csrfRes   = await fetch('/api/csrf-token');
+        const csrfData  = await csrfRes.json();
+        const csrfToken = csrfData.csrfToken;
+
+        // 4. Send ONLY pid + qty to server (never price from client)
+        const items = cart.map(item => ({ pid: item.pid, qty: item.qty }));
+
+        const res = await fetch('/api/checkout', {
+          method : 'POST',
+          headers: {
+            'Content-Type' : 'application/json',
+            'X-CSRF-Token' : csrfToken
+          },
+          body: JSON.stringify({ items })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || 'Checkout failed. Please try again.');
+          checkoutBtn.textContent = 'Checkout';
+          checkoutBtn.disabled    = false;
+          return;
+        }
+
+        // 5. Clear cart BEFORE redirecting to Stripe
+        clearCart();
+
+        // 6. Redirect to Stripe Checkout page
+        window.location.href = data.url;
+
+      } catch (err) {
+        console.error('Checkout error:', err);
+        alert('Network error. Please try again.');
+        checkoutBtn.textContent = 'Checkout';
+        checkoutBtn.disabled    = false;
+      }
+    });
+
     const clearBtn = document.createElement('button');
     clearBtn.className = 'cart-clear-btn';
     clearBtn.textContent = 'Clear Cart';
     clearBtn.addEventListener('click', () => {
       if (confirm('Clear all items from cart?')) clearCart();
     });
-  
+
     btnRow.appendChild(checkoutBtn);
     btnRow.appendChild(clearBtn);
     listContainer.appendChild(btnRow);

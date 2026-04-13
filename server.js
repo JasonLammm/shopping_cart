@@ -1,35 +1,47 @@
+require('dotenv').config(); // Must be line 1
 /* =========================================
-server.js
-PHASE 4: XSS Prevention + CSRF Protection
+   server.js
+   PHASE 4: XSS Prevention + CSRF Protection
+   PHASE 5: Stripe Checkout + Orders
 ========================================= */
 
-const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
-const sharp   = require('sharp');
-const crypto  = require('crypto');         // ← NEW
-const session = require('express-session'); // ← NEW
-const db      = require('./database');
-const bcrypt = require('bcrypt');
+const express  = require('express');
+const multer   = require('multer');
+const path     = require('path');
+const fs       = require('fs');
+const sharp    = require('sharp');
+const crypto   = require('crypto');
+const session  = require('express-session');
+const db       = require('./database');
+const bcrypt   = require('bcrypt');
+
+// =========================================
+// [PHASE 5] Stripe Setup
+// =========================================
+const Stripe = require('stripe');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+const MERCHANT_EMAIL = process.env.MERCHANT_EMAIL;
+const CURRENCY = process.env.CURRENCY || 'usd';
+const YOUR_DOMAIN = process.env.YOUR_DOMAIN || 'http://localhost:3001';
 
 const app = express();
 app.disable('x-powered-by');
-app.set('trust proxy', 1)
-const PORT = 3001;
+app.set('trust proxy', 1);
+const PORT = process.env.PORT;
 
 // =========================================
-// [PHASE 4] Session + CSRF Setup            ← NEW BLOCK
+// [PHASE 4] Session + CSRF Setup
 // =========================================
 app.use(session({
-  secret: crypto.randomBytes(64).toString('hex'),
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: true,           // set to true once HTTPS is live
-    sameSite: 'Strict',      // Defence 2: blocks cross-site cookie sending
-    maxAge: 1000 * 60 * 60 * 24 * 2  // 2 days
+    secure: process.env.NODE_ENV === 'production', // set for testing locally
+    sameSite: 'Strict',
+    maxAge: 1000 * 60 * 60 * 24 * 2 // 2 days
   }
 }));
 
@@ -46,7 +58,7 @@ app.get('/api/csrf-token', (req, res) => {
   res.json({ csrfToken: req.session.csrfToken });
 });
 
-// CSRF validation middleware — used on all POST/PUT/DELETE routes
+// CSRF validation middleware
 function validateCSRF(req, res, next) {
   const token = (req.body && req.body._csrf) || req.headers['x-csrf-token'];
   if (!token || token !== req.session.csrfToken) {
@@ -58,11 +70,9 @@ function validateCSRF(req, res, next) {
 // Middleware: must be logged in
 function requireAuth(req, res, next) {
   if (!req.session.userId) {
-    // API routes → return JSON error
     if (req.path.startsWith('/api/')) {
       return res.status(401).json({ error: 'Login required.' });
     }
-    // Page routes → redirect to login
     return res.redirect('/login');
   }
   next();
@@ -86,7 +96,7 @@ function requireAdmin(req, res, next) {
 }
 
 // =========================================
-// [PHASE 4] Security Headers
+// [PHASE 4 FIX] Security Headers
 // =========================================
 app.use((req, res, next) => {
   res.setHeader(
@@ -94,43 +104,115 @@ app.use((req, res, next) => {
     [
       "default-src 'self'",
       "script-src 'self'",
-      "style-src 'self' https://fonts.googleapis.com",  // FIXED: removed 'unsafe-inline'
+      "style-src 'self' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data:",
       "connect-src 'self'",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "upgrade-insecure-requests"                       // NEW
+      "upgrade-insecure-requests"
     ].join('; ')
   );
-
-  res.setHeader('X-Content-Type-Options', 'nosniff');   // NEW
-  res.setHeader('X-Frame-Options', 'DENY');             // NEW
-  // Uncomment ONLY after TLS cert is live on server:
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  // Uncomment after TLS is live:
   // res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-
   next();
 });
+
+// =========================================
+// [PHASE 5] Stripe Webhook
+// MUST be BEFORE express.json() middleware
+// =========================================
+app.post('/api/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    const sig           = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).json({ error: 'Invalid signature.' });
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const stripeSession = event.data.object;
+      const { orderid } = stripeSession.metadata;
+
+      try {
+        const order = await new Promise((resolve, reject) => {
+          db.get(`SELECT * FROM orders WHERE orderid = ?`, [orderid],
+            (err, row) => err ? reject(err) : resolve(row));
+        });
+
+        if (!order) {
+          console.error('Order not found:', orderid);
+          return res.status(404).json({ error: 'Order not found.' });
+        }
+
+        // Idempotency check
+        if (order.status === 'paid') {
+          console.log('Duplicate webhook ignored for order:', orderid);
+          return res.json({ received: true });
+        }
+
+        const orderItems = await new Promise((resolve, reject) => {
+          db.all(`SELECT * FROM order_items WHERE orderid = ?`, [orderid],
+            (err, rows) => err ? reject(err) : resolve(rows));
+        });
+
+        const itemsString = orderItems.map(i => `${i.pid}:${i.quantity}:${i.price}`).join(',');
+        const total       = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+        const rawString   = [order.currency, order.merchant_email, order.salt, itemsString, total.toFixed(2)].join('|');
+        const regenDigest = crypto.createHash('sha256').update(rawString).digest('hex');
+
+        if (regenDigest !== order.digest) {
+          console.error('Digest mismatch — possible tampering! Order:', orderid);
+          return res.status(400).json({ error: 'Digest mismatch.' });
+        }
+
+        await new Promise((resolve, reject) => {
+          db.run(`UPDATE orders SET status = 'paid' WHERE orderid = ?`, [orderid],
+            err => err ? reject(err) : resolve());
+        });
+
+        console.log('Order paid and verified:', orderid);
+
+      } catch (err) {
+        console.error('Webhook processing error:', err);
+        return res.status(500).json({ error: 'Processing failed.' });
+      }
+    }
+
+    res.json({ received: true });
+  }
+);
 
 // =========================================
 // MIDDLEWARE
 // =========================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use((req, res, next) => {
   if (req.path === '/admin.html') {
     return res.redirect('/admin');
   }
   next();
 });
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // =========================================
 // MULTER — Image Upload Configuration
 // =========================================
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_MIME  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const storage = multer.diskStorage({
@@ -224,7 +306,6 @@ app.get('/admin.html', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// Serve login page
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
@@ -237,10 +318,15 @@ app.get('/change-password', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'change-password.html'));
 });
 
+app.get('/orders', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'orders.html'));
+});
 
-// POST /api/login
+// =========================================
+// AUTH API ROUTES
+// =========================================
 app.post('/api/login', validateCSRF, (req, res) => {
-  const email    = stripHTML(req.body.email    || '').trim().toLowerCase();
+  const email    = stripHTML(req.body.email || '').trim().toLowerCase();
   const password = req.body.password || '';
 
   if (!email || !password) {
@@ -250,7 +336,6 @@ app.post('/api/login', validateCSRF, (req, res) => {
   db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
     if (err) return res.status(500).json({ error: 'Database error.' });
 
-    // Generic error — never reveal which field is wrong
     if (!user) {
       return res.status(401).json({ error: 'Either email or password is incorrect.' });
     }
@@ -260,29 +345,25 @@ app.post('/api/login', validateCSRF, (req, res) => {
       return res.status(401).json({ error: 'Either email or password is incorrect.' });
     }
 
-    // Regenerate session to prevent session fixation (Point 5 sub-bullet)
     req.session.regenerate((regenErr) => {
       if (regenErr) return res.status(500).json({ error: 'Session error.' });
 
       req.session.userId  = user.userid;
       req.session.name    = user.name;
       req.session.isAdmin = user.isAdmin === 1;
-
-      // Rotate CSRF token after login
-      req.session.csrfToken = require('crypto').randomBytes(32).toString('hex');
+      req.session.csrfToken = crypto.randomBytes(32).toString('hex');
 
       res.json({ success: true, name: user.name, isAdmin: user.isAdmin === 1 });
     });
   });
 });
 
-// POST /api/logout
 app.post('/api/logout', validateCSRF, (req, res) => {
   req.session.destroy(() => {
     res.clearCookie('connect.sid', {
       httpOnly: true,
       sameSite: 'Strict',
-      secure: true       // match your session cookie config exactly
+      secure: true
     });
     res.json({ success: true });
   });
@@ -290,7 +371,7 @@ app.post('/api/logout', validateCSRF, (req, res) => {
 
 app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => {
   const currentPassword = req.body.currentPassword || '';
-  const newPassword     = req.body.newPassword     || '';
+  const newPassword     = req.body.newPassword || '';
   const confirmPassword = req.body.confirmPassword || '';
 
   if (!currentPassword || !newPassword || !confirmPassword)
@@ -301,7 +382,7 @@ app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => 
 
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
   if (!passwordRegex.test(newPassword))
-    return res.status(400).json({ error: 'New password must be at least 8 characters and include uppercase, lowercase, number, and special character.' });  
+    return res.status(400).json({ error: 'New password must be at least 8 characters and include uppercase, lowercase, number, and special character.' });
 
   if (newPassword === currentPassword)
     return res.status(400).json({ error: 'New password must differ from current password.' });
@@ -317,7 +398,6 @@ app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => 
       function (updateErr) {
         if (updateErr) return res.status(500).json({ error: 'Database error.' });
 
-        // Logout after password change
         req.session.destroy(() => {
           res.clearCookie('connect.sid', {
             httpOnly: true,
@@ -331,12 +411,11 @@ app.post('/api/change-password', validateCSRF, requireAuth, async (req, res) => 
   });
 });
 
-// POST /api/register
 app.post('/api/register', validateCSRF, async (req, res) => {
-  const name     = stripHTML(req.body.name     || '').trim();
-  const email    = stripHTML(req.body.email    || '').trim().toLowerCase();
-  const password = req.body.password            || '';
-  const confirm  = req.body.confirmPassword     || '';
+  const name     = stripHTML(req.body.name || '').trim();
+  const email    = stripHTML(req.body.email || '').trim().toLowerCase();
+  const password = req.body.password || '';
+  const confirm  = req.body.confirmPassword || '';
 
   if (!name || !email || !password || !confirm)
     return res.status(400).json({ error: 'All fields are required.' });
@@ -371,7 +450,6 @@ app.post('/api/register', validateCSRF, async (req, res) => {
   }
 });
 
-// GET /api/me — tell the frontend who is logged in
 app.get('/api/me', (req, res) => {
   if (req.session.userId) {
     res.json({ name: req.session.name, isAdmin: req.session.isAdmin });
@@ -393,7 +471,7 @@ app.get('/api/categories', (req, res) => {
   });
 });
 
-app.post('/api/categories', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
+app.post('/api/categories', validateCSRF, requireAdmin, (req, res) => {
   const name = validateCategoryName(req.body.name);
   if (!name) {
     return res.status(400).json({
@@ -411,7 +489,7 @@ app.post('/api/categories', validateCSRF, requireAdmin, (req, res) => {  // ← 
   });
 });
 
-app.put('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
+app.put('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {
   const catid = parseInt(req.params.catid);
   if (isNaN(catid)) return res.status(400).json({ error: 'Invalid category ID.' });
   const name = validateCategoryName(req.body.name);
@@ -423,7 +501,7 @@ app.put('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {  /
   });
 });
 
-app.delete('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
+app.delete('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {
   const catid = parseInt(req.params.catid);
   if (isNaN(catid)) {
     return res.status(400).json({ error: 'Invalid category ID.' });
@@ -444,9 +522,11 @@ app.delete('/api/categories/:catid', validateCSRF, requireAdmin, (req, res) => {
 // =========================================
 app.get('/api/products', (req, res) => {
   if (req.query.catid !== undefined && !/^\d+$/.test(req.query.catid)) {
-    return res.status(400).json({ error: "Invalid category ID." });
-  }  
+    return res.status(400).json({ error: 'Invalid category ID.' });
+  }
+
   const catid = parseInt(req.query.catid);
+
   if (req.query.catid !== undefined) {
     const catidInt = parseInt(catid);
     if (isNaN(catidInt) || catidInt < 1) {
@@ -486,12 +566,12 @@ app.get('/api/products', (req, res) => {
 });
 
 app.get('/api/product/:pid', (req, res) => {
-  if (!/^\d+$/.test(req.params.pid)) {  // ← NEW: reject anything that isn't pure digits
-    return res.status(400).json({ error: "Invalid product ID." });
+  if (!/^\d+$/.test(req.params.pid)) {
+    return res.status(400).json({ error: 'Invalid product ID.' });
   }
   const pid = parseInt(req.params.pid);
   if (pid <= 0) {
-    return res.status(400).json({ error: "Invalid product ID." });
+    return res.status(400).json({ error: 'Invalid product ID.' });
   }
   const sql = `
     SELECT p.pid, p.catid, p.name, p.price, p.description, p.image,
@@ -512,11 +592,7 @@ app.get('/api/product/:pid', (req, res) => {
   });
 });
 
-// ⚠️ validateCSRF MUST come BEFORE upload.single so req.body is not yet parsed by multer
-// The _csrf field in FormData is read by express.urlencoded BEFORE multer runs
-// Actually for multipart/form-data, we need a different approach:
-// validateCSRF reads from req.headers['x-csrf-token'] for FormData routes
-app.post('/api/products', validateCSRF, requireAdmin, upload.single('image'), (req, res) => {  // ← validateCSRF added
+app.post('/api/products', validateCSRF, requireAdmin, upload.single('image'), (req, res) => {
   const { errors, cleaned } = validateProduct(req.body);
   if (errors.length > 0) {
     if (req.file) fs.unlink(req.file.path, () => {});
@@ -533,14 +609,13 @@ app.post('/api/products', validateCSRF, requireAdmin, upload.single('image'), (r
         if (tempImage) fs.unlink(path.join(__dirname, 'public', 'images', tempImage), () => {});
         return res.status(500).json({ error: err.message });
       }
-
       const pid = this.lastID;
 
       if (tempImage) {
-        const ext = path.extname(tempImage);
+        const ext       = path.extname(tempImage);
         const finalName = `${pid}${ext}`;
-        const oldPath = path.join(__dirname, 'public', 'images', tempImage);
-        const newPath = path.join(__dirname, 'public', 'images', finalName);
+        const oldPath   = path.join(__dirname, 'public', 'images', tempImage);
+        const newPath   = path.join(__dirname, 'public', 'images', finalName);
         fs.renameSync(oldPath, newPath);
         db.run('UPDATE products SET image=? WHERE pid=?', [finalName, pid]);
         await createThumbnail(finalName);
@@ -552,7 +627,7 @@ app.post('/api/products', validateCSRF, requireAdmin, upload.single('image'), (r
   );
 });
 
-app.put('/api/products/:pid', validateCSRF, requireAdmin, upload.single('image'), (req, res) => {  // ← validateCSRF added
+app.put('/api/products/:pid', validateCSRF, requireAdmin, upload.single('image'), (req, res) => {
   const pid = parseInt(req.params.pid);
   if (isNaN(pid) || pid < 1) {
     return res.status(400).json({ error: 'Invalid product ID.' });
@@ -572,9 +647,9 @@ app.put('/api/products/:pid', validateCSRF, requireAdmin, upload.single('image')
         return res.status(404).json({ error: 'Product not found.' });
       }
 
-      const ext = path.extname(req.file.filename);
+      const ext       = path.extname(req.file.filename);
       const finalName = `${pid}${ext}`;
-      const tempPath = path.join(__dirname, 'public', 'images', req.file.filename);
+      const tempPath  = path.join(__dirname, 'public', 'images', req.file.filename);
       const finalPath = path.join(__dirname, 'public', 'images', finalName);
       fs.renameSync(tempPath, finalPath);
 
@@ -607,12 +682,11 @@ app.put('/api/products/:pid', validateCSRF, requireAdmin, upload.single('image')
   }
 });
 
-app.delete('/api/products/:pid', validateCSRF, requireAdmin, (req, res) => {  // ← validateCSRF added
+app.delete('/api/products/:pid', validateCSRF, requireAdmin, (req, res) => {
   const pid = parseInt(req.params.pid);
   if (isNaN(pid) || pid < 1) {
     return res.status(400).json({ error: 'Invalid product ID.' });
   }
-
   db.get('SELECT image FROM products WHERE pid = ?', [pid], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: 'Product not found.' });
@@ -624,10 +698,194 @@ app.delete('/api/products/:pid', validateCSRF, requireAdmin, (req, res) => {  //
         fs.unlink(path.join(__dirname, 'public', 'images', row.image), () => {});
         fs.unlink(path.join(__dirname, 'public', 'images', `thumb_${row.image}`), () => {});
       }
-
       res.json({ success: true });
     });
   });
+});
+
+// =========================================
+// [PHASE 5] CHECKOUT — Order Validation
+// =========================================
+app.post('/api/checkout', validateCSRF, requireAuth, async (req, res) => {
+  const items = req.body.items;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Cart is empty.' });
+  }
+
+  for (const item of items) {
+    const pid = parseInt(item.pid);
+    const qty = parseInt(item.qty);
+    if (isNaN(pid) || pid < 1 || isNaN(qty) || qty < 1) {
+      return res.status(400).json({ error: 'Invalid item in cart.' });
+    }
+  }
+
+  try {
+    const pidList      = items.map(i => parseInt(i.pid));
+    const placeholders = pidList.map(() => '?').join(',');
+    const dbProducts   = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT pid, name, price FROM products WHERE pid IN (${placeholders})`,
+        pidList,
+        (err, rows) => err ? reject(err) : resolve(rows)
+      );
+    });
+
+    if (dbProducts.length !== pidList.length) {
+      return res.status(400).json({ error: 'One or more products not found.' });
+    }
+
+    const priceMap   = Object.fromEntries(dbProducts.map(p => [p.pid, p]));
+    const orderItems = items.map(i => ({
+      pid  : parseInt(i.pid),
+      qty  : parseInt(i.qty),
+      price: priceMap[parseInt(i.pid)].price,
+      name : priceMap[parseInt(i.pid)].name
+    }));
+
+    const total = orderItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+    const salt        = crypto.randomBytes(16).toString('hex');
+    const itemsString = orderItems.map(i => `${i.pid}:${i.qty}:${i.price}`).join(',');
+    const rawString   = [CURRENCY, MERCHANT_EMAIL, salt, itemsString, total.toFixed(2)].join('|');
+    const digest      = crypto.createHash('sha256').update(rawString).digest('hex');
+
+    const orderid = await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO orders (userid, email, currency, merchant_email, salt, digest, total, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        [req.session.userId, req.session.name, CURRENCY, MERCHANT_EMAIL, salt, digest, total],
+        function (err) { err ? reject(err) : resolve(this.lastID); }
+      );
+    });
+
+    for (const item of orderItems) {
+      await new Promise((resolve, reject) => {
+        db.run(
+          `INSERT INTO order_items (orderid, pid, quantity, price) VALUES (?, ?, ?, ?)`,
+          [orderid, item.pid, item.qty, item.price],
+          err => err ? reject(err) : resolve()
+        );
+      });
+    }
+
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: orderItems.map(i => ({
+        price_data: {
+          currency    : CURRENCY,
+          product_data: { name: i.name },
+          unit_amount : Math.round(i.price * 100)
+        },
+        quantity: i.qty
+      })),
+      mode       : 'payment',
+      success_url: `${YOUR_DOMAIN}/orders?success=1`,
+      cancel_url : `${YOUR_DOMAIN}/?cancelled=1`,
+      metadata   : { orderid: String(orderid), digest }
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE orders SET stripe_session_id = ? WHERE orderid = ?`,
+        [stripeSession.id, orderid],
+        err => err ? reject(err) : resolve()
+      );
+    });
+
+    res.json({ url: stripeSession.url });
+
+  } catch (err) {
+    console.error('/api/checkout error:', err);
+    res.status(500).json({ error: 'Checkout failed.' });
+  }
+});
+
+// =========================================
+// [PHASE 5] MEMBER — Last 5 Orders
+// =========================================
+app.get('/api/my-orders', requireAuth, (req, res) => {
+  db.all(
+    `SELECT o.orderid, o.total, o.status, o.currency, o.created_at,
+            oi.pid, oi.quantity, oi.price,
+            p.name AS product_name
+     FROM orders o
+     JOIN order_items oi ON o.orderid = oi.orderid
+     LEFT JOIN products p ON oi.pid = p.pid
+     WHERE o.userid = ?
+     ORDER BY o.created_at DESC
+     LIMIT 50`,
+    [req.session.userId],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error.' });
+
+      const ordersMap = new Map();
+      for (const row of rows) {
+        if (!ordersMap.has(row.orderid)) {
+          ordersMap.set(row.orderid, {
+            orderid   : row.orderid,
+            total     : row.total,
+            status    : row.status,
+            currency  : row.currency,
+            created_at: row.created_at,
+            items     : []
+          });
+        }
+        ordersMap.get(row.orderid).items.push({
+          pid         : row.pid,
+          product_name: row.product_name,
+          quantity    : row.quantity,
+          price       : row.price
+        });
+      }
+
+      const orders = [...ordersMap.values()].slice(0, 5);
+      res.json(orders);
+    }
+  );
+});
+
+// =========================================
+// [PHASE 5] ADMIN — All Orders
+// =========================================
+app.get('/api/admin/orders', requireAdmin, (req, res) => {
+  db.all(
+    `SELECT o.orderid, o.email, o.total, o.status, o.currency, o.created_at,
+            oi.pid, oi.quantity, oi.price,
+            p.name AS product_name
+     FROM orders o
+     JOIN order_items oi ON o.orderid = oi.orderid
+     LEFT JOIN products p ON oi.pid = p.pid
+     ORDER BY o.created_at DESC`,
+    [],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Database error.' });
+
+      const ordersMap = new Map();
+      for (const row of rows) {
+        if (!ordersMap.has(row.orderid)) {
+          ordersMap.set(row.orderid, {
+            orderid   : row.orderid,
+            email     : row.email,
+            total     : row.total,
+            status    : row.status,
+            currency  : row.currency,
+            created_at: row.created_at,
+            items     : []
+          });
+        }
+        ordersMap.get(row.orderid).items.push({
+          pid         : row.pid,
+          product_name: row.product_name,
+          quantity    : row.quantity,
+          price       : row.price
+        });
+      }
+
+      res.json([...ordersMap.values()]);
+    }
+  );
 });
 
 // =========================================
@@ -647,7 +905,7 @@ app.use((err, req, res, next) => {
 });
 
 // =========================================
-// GLOBAL ERROR HANDLER
+// [PHASE 4 FIX] GLOBAL ERROR HANDLER
 // =========================================
 app.use((err, req, res, next) => {
   console.error('[Unhandled Error]', err);

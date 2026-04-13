@@ -1,0 +1,186 @@
+/* =========================================
+   css/orders.css
+   Styles for the My Orders page
+========================================= */
+
+/* ── Layout ──────────────────────────────── */
+body {
+    font-family: sans-serif;
+    padding: 20px;
+    max-width: 960px;
+    margin: 0 auto;
+    background-color: #f9f9f9;
+    color: #333;
+  }
+  
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #eee;
+  }
+  
+  header .site-title a {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+  }
+  
+  header .site-title a:hover {
+    color: #007bff;
+  }
+  
+  main {
+    padding: 0 4px;
+  }
+  
+  h1 {
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+  }
+  
+  /* ── Back Link ───────────────────────────── */
+  .back-link {
+    display: inline-block;
+    margin-bottom: 16px;
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+  
+  .back-link:hover {
+    text-decoration: underline;
+  }
+  
+  /* ── Banners ─────────────────────────────── */
+  .success-banner {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-weight: bold;
+  }
+  
+  .cancelled-banner {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 24px;
+    font-weight: bold;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  /* ── Order Cards ─────────────────────────── */
+  .order-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+  
+  .order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .order-id {
+    font-weight: bold;
+    font-size: 1rem;
+  }
+  
+  .order-date {
+    color: #888;
+    font-size: 0.85rem;
+  }
+  
+  /* ── Status Badges ───────────────────────── */
+  .status-paid {
+    background: #28a745;
+    color: #fff;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  
+  .status-pending {
+    background: #ffc107;
+    color: #333;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  
+  /* ── Items Table ─────────────────────────── */
+  .order-items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .order-items-table th {
+    text-align: left;
+    padding: 8px 10px;
+    background: #f5f5f5;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+  }
+  
+  .order-items-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .order-items-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* ── Order Total ─────────────────────────── */
+  .order-total {
+    text-align: right;
+    font-weight: bold;
+    margin-top: 12px;
+    font-size: 1rem;
+    color: #333;
+  }
+  
+  /* ── Empty / Error States ────────────────── */
+  .no-orders {
+    color: #888;
+    text-align: center;
+    margin-top: 60px;
+    font-size: 1.1rem;
+  }
+  
+  .loading-text {
+    color: #888;
+    font-size: 1rem;
+    margin-top: 20px;
+  }
+  
+  .error-text {
+    color: #dc3545;
+    font-size: 1rem;
+    margin-top: 20px;
+  }

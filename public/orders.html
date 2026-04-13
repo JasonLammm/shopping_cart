@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Orders</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/orders.css" />
+</head>
+<body>
+
+  <header>
+    <div class="site-title">
+      <a href="/">My Shop</a>
+    </div>
+  </header>
+
+  <main>
+    <a href="/" class="back-link">← Back to Shop</a>
+    <h1>My Orders</h1>
+
+    <div id="success-banner" class="success-banner hidden">
+      ✅ Payment successful! Your order has been placed.
+    </div>
+
+    <div id="cancelled-banner" class="cancelled-banner hidden">
+      ❌ Payment was cancelled. Your cart has been cleared.
+    </div>
+
+    <div id="orders-container">
+      <p class="loading-text">Loading your orders...</p>
+    </div>
+  </main>
+
+  <script src="/js/orders.js"></script>
+
+</body>
+</html>

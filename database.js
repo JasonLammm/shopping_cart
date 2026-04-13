@@ -14,6 +14,7 @@ const db = new sqlite3.Database('./shopping.db', (err) => {
         initCategories();
         initProducts();
         initUsers();
+        initOrders();
     }
 });
 
@@ -95,4 +96,38 @@ function initUsers() {
   }
 
 // Export the db object to use in server.js
+
+function initOrders() {
+    db.run(`CREATE TABLE IF NOT EXISTS orders (
+      orderid           INTEGER PRIMARY KEY AUTOINCREMENT,
+      userid            INTEGER NOT NULL,
+      email             TEXT NOT NULL,
+      currency          TEXT NOT NULL,
+      merchant_email    TEXT NOT NULL,
+      salt              TEXT NOT NULL,
+      digest            TEXT NOT NULL,
+      total             REAL NOT NULL,
+      status            TEXT NOT NULL DEFAULT 'pending',
+      stripe_session_id TEXT,
+      created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userid) REFERENCES users(userid)
+    )`, (err) => {
+      if (err) console.log('Orders table error: ' + err);
+      else console.log('Orders table initialized.');
+    });
+  
+    db.run(`CREATE TABLE IF NOT EXISTS order_items (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      orderid   INTEGER NOT NULL,
+      pid       INTEGER NOT NULL,
+      quantity  INTEGER NOT NULL,
+      price     REAL NOT NULL,
+      FOREIGN KEY (orderid) REFERENCES orders(orderid),
+      FOREIGN KEY (pid)     REFERENCES products(pid)
+    )`, (err) => {
+      if (err) console.log('Order items table error: ' + err);
+      else console.log('Order items table initialized.');
+    });
+  }
+  
 module.exports = db;

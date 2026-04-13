@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     csrfToken = tokenData.csrfToken;
     fetchCategories();
     fetchProducts();
+    fetchOrders();
   
     // ─── CATEGORY LOGIC ───────────────────────────────────────────────
     const catForm = document.getElementById('add-category-form');
@@ -357,6 +358,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       console.error(err);
       alert('Network error');
+    }
+  }
+
+  // ─── HELPER: Fetch & Render All Orders ───────────────────────────────
+  async function fetchOrders() {
+    try {
+      const res = await apiFetch('/api/admin/orders');
+      if (!res) return;
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const orders = await res.json();
+
+      const tbody = document.getElementById('orders-table-body');
+      tbody.innerHTML = '';
+
+      if (!orders || orders.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.textContent = 'No orders yet.';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      orders.forEach(order => {
+        const tr = document.createElement('tr');
+
+        const tdId = document.createElement('td');
+        tdId.textContent = order.orderid;
+
+        const tdUser = document.createElement('td');
+        tdUser.textContent = order.username || order.email;
+
+        const tdProducts = document.createElement('td');
+        if (order.items && order.items.length > 0) {
+          order.items.forEach(item => {
+            const line = document.createElement('div');
+            line.textContent = `${item.product_name} x${item.quantity} @ $${parseFloat(item.price).toFixed(2)}`;
+            tdProducts.appendChild(line);
+          });
+        } else {
+          tdProducts.textContent = '-';
+        }
+
+        const tdTotal = document.createElement('td');
+        tdTotal.textContent = `$${parseFloat(order.total).toFixed(2)} ${order.currency.toUpperCase()}`;
+
+        const tdStatus = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.textContent = order.status === 'paid' ? 'Paid' : 'Pending';
+        badge.className = order.status === 'paid' ? 'badge badge-paid' : 'badge badge-pending';
+        tdStatus.appendChild(badge);
+
+        const tdDate = document.createElement('td');
+        tdDate.textContent = new Date(order.created_at).toLocaleString();
+
+        tr.appendChild(tdId);
+        tr.appendChild(tdUser);
+        tr.appendChild(tdProducts);
+        tr.appendChild(tdTotal);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdDate);
+        tbody.appendChild(tr);
+      });
+
+    } catch (err) {
+      console.error('fetchOrders error:', err);
     }
   }
   

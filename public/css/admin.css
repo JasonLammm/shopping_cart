@@ -297,6 +297,25 @@
   .hidden {
     display: none !important;
   }
+
+  /* ── Order Status Badges ── */       /* ← ADD FROM HERE */
+  .badge {
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-block;
+  }
+
+  .badge-paid {
+    background: #28a745;
+    color: #ffffff;
+  }
+
+  .badge-pending {
+    background: #ffc107;
+    color: #333333;
+  }
   
   #current-image-text {
     font-size: 0.85rem;

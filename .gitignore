@@ -26,3 +26,43 @@ logs
 public/images/*
 !public/images/.gitkeep
 # (If you want to keep the initial dummy images, comment out the lines above)
+
+# ========================
+# Secrets & Environment
+# ========================
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+
+# ========================
+# macOS
+# ========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# ========================
+# Node.js
+# ========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+
+# ========================
+# Runtime / Build
+# ========================
+dist/
+build/
+.cache/
