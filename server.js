@@ -23,7 +23,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const MERCHANT_EMAIL = process.env.MERCHANT_EMAIL;
 const CURRENCY = process.env.CURRENCY || 'usd';
-const YOUR_DOMAIN = process.env.YOUR_DOMAIN || 'http://localhost:3001';
+const YOUR_DOMAIN = (process.env.YOUR_DOMAIN || 'http://localhost:3001').replace(/\/$/, '');
 
 const app = express();
 app.disable('x-powered-by');
@@ -40,7 +40,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // set for testing locally
-    sameSite: 'Strict',
+    sameSite: 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 2 // 2 days
   }
 }));
