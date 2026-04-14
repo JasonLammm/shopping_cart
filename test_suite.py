@@ -919,10 +919,9 @@ try:
     login(nav_s, USER_EMAIL, USER_PASSWORD)
     r     = nav_s.get(url("/"), timeout=TIMEOUT)
     html  = r.text if r.status_code == 200 else ""
-    # look for href="/orders" or href="/orders"
     test("P5", 'Homepage nav contains "My Orders" link (/orders) for logged-in user',
-         '"/orders"' in html or "href='/orders'" in html or "/orders" in html,
-         'href="/orders" not found in homepage HTML when logged in — add My Orders link to userStatus.js')
+         'href="/orders"' in html or "href='/orders'" in html,
+         'href="/orders" not found in homepage HTML — check index.html has the static anchor tag')
 except Exception as e:
     test("P5", "My Orders link in nav", False, str(e))
 

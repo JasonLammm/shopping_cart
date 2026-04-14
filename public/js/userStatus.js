@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!el) return;
 
     if (data.name) {
+      const staticLink = document.getElementById('orders-nav-link');
+      if (staticLink) staticLink.style.display = 'inline';
+
       const nameSpan = document.createElement('span');
       nameSpan.className   = 'user-greeting';
       nameSpan.textContent = `Logged in as: ${data.name}`;
