@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 =============================================================
- IERG4210 Phase 1–5 Complete Automated Test Suite
+ IERG4210 Phase 1-6 Complete Automated Test Suite
  Usage:
    python test_suite.py                        # localhost:3001
    BASE_URL=https://20.74.81.143 python test_suite.py
@@ -959,6 +959,60 @@ try:
 except Exception as e:
     test("P5", "Orders stores email not name", False, str(e), warn=True)
 
+
+# =============================================================
+# PHASE 6-1 — Social Plugin / Share Buttons
+# =============================================================
+print("\n── Phase 6-1 : Social Plugin / Share Buttons ───────────")
+
+try:
+    r = s0.get(url("/"), timeout=TIMEOUT)
+    html = r.text
+
+    # 6-01 Facebook sharer link present in homepage
+    fb_present = "facebook.com/sharer" in html
+    test("P6-1", "Facebook share link present in homepage HTML",
+         fb_present,
+         "Add <a href='https://www.facebook.com/sharer/sharer.php?u=...'> to footer")
+
+    # 6-03 Share links open in new tab (target="_blank")
+    blank_present = 'target="_blank"' in html or "target='_blank'" in html
+    test("P6-1", "Share links use target='_blank' (opens new tab)",
+         blank_present,
+         "Add target='_blank' rel='noopener noreferrer' to share links")
+
+    # 6-04 Share links include rel="noopener noreferrer" (security)
+    noopener_present = "noopener" in html
+    test("P6-1", "Share links have rel='noopener noreferrer' (security)",
+         noopener_present,
+         "Add rel='noopener noreferrer' to all target='_blank' links")
+
+    # 6-05 Share links are placed inside <footer>
+    footer_start = html.lower().find("<footer")
+    footer_end   = html.lower().find("</footer>")
+    footer_html  = html[footer_start:footer_end] if footer_start != -1 and footer_end != -1 else ""
+    share_in_footer = ("facebook.com/sharer" in footer_html or
+                       "twitter.com/intent/tweet" in footer_html or
+                       "x.com/intent/tweet" in footer_html)
+    test("P6-1", "Share links are placed inside <footer>",
+         share_in_footer,
+         "Social share links should live inside the <footer> element")
+
+    # 6-06 Share URL contains your actual shop domain (not a placeholder)
+    real_domain = BASE_URL.replace("https://", "").replace("http://", "").split("/")[0]
+    has_real_domain = (real_domain in html or "ierg4210" in html or "s14" in html)
+    test("P6-1", "Share URL contains your actual shop domain",
+         has_real_domain,
+         f"Replace example.com with your real domain ({real_domain}) in share links")
+
+    # 6-07 No dead Facebook SDK script tag still present
+    dead_sdk = ("fb-root" in html or "connect.facebook.net" in html or "xfbml=1" in html)
+    test("P6-1", "No dead Facebook SDK script (connect.facebook.net removed)",
+         not dead_sdk,
+         "Remove the old FB SDK <script> tag — it no longer renders and slows page load")
+
+except Exception as e:
+    test("P6-1", "Phase 6-1 social plugin checks", False, str(e))
 
 # =============================================================
 # FINAL REPORT
