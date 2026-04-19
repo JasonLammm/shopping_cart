@@ -357,3 +357,76 @@
     }
   }
   
+  /* ── Drag & Drop Zone ── */
+#drop-zone {
+  border: 2px dashed #aaa;
+  border-radius: 8px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #fafafa;
+  color: #666;
+}
+
+#drop-zone.dragover {
+  border-color: #01696f;
+  background: #e6f2f3;
+  color: #01696f;
+}
+
+#drop-zone svg {
+  margin: 0 auto 8px;
+}
+
+#drop-zone p {
+  margin: 8px 0;
+}
+
+#drop-zone span {
+  font-size: 0.85em;
+  color: #999;
+}
+
+#prod-image {
+  display: none;
+}
+
+.browse-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 16px;
+  background: #01696f;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s;
+}
+
+.browse-btn:hover {
+  background: #0c4e54;
+}
+
+.drop-error {
+  color: red;
+  margin-top: 6px;
+}
+
+/* ── Image Preview ── */
+#preview-container {
+  margin-top: 12px;
+}
+
+#preview-img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+#preview-name {
+  font-size: 0.85em;
+  color: #555;
+  margin-top: 4px;
+}

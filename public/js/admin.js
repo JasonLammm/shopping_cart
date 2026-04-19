@@ -428,3 +428,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
   
+
+
+  // ── Drag & Drop Image Upload ──────────────────────────────────────────
+(function () {
+  const dropZone    = document.getElementById('drop-zone');
+  const fileInput   = document.getElementById('prod-image');
+  const previewCtr  = document.getElementById('preview-container');
+  const previewImg  = document.getElementById('preview-img');
+  const previewNm   = document.getElementById('preview-name');
+  const dropError   = document.getElementById('drop-error');
+
+  function isImage(file) {
+    return file && file.type.startsWith('image/');
+  }
+
+  function showPreview(file) {
+    dropError.classList.add('hidden');
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      previewNm.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+      previewCtr.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function rejectFile() {
+    previewCtr.classList.add('hidden');
+    dropError.classList.remove('hidden');
+    fileInput.value = '';
+  }
+
+  function handleFile(file) {
+    if (isImage(file)) {
+      // Inject the dropped file into the real <input type="file">
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      showPreview(file);
+    } else {
+      rejectFile();
+    }
+  }
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  // Clicking anywhere on the zone (except the label) opens file dialog
+  dropZone.addEventListener('click', e => {
+    if (e.target.tagName !== 'LABEL') fileInput.click();
+  });
+
+  // Reset preview when form is cancelled or reset
+  const cancelBtn = document.getElementById('cancel-btn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      previewCtr.classList.add('hidden');
+      dropError.classList.add('hidden');
+      fileInput.value = '';
+    });
+  }
+})();

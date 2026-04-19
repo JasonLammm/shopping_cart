@@ -80,8 +80,24 @@
         </div>
 
         <div class="form-group">
-          <label for="prod-image">Product Image</label>
-          <input type="file" id="prod-image" accept="image/jpeg,image/png,image/gif,image/webp">
+          <label>Product Image</label>
+          <div id="drop-zone">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <p>Drag &amp; drop an image here</p>
+            <span>or</span>
+            <label for="prod-image" class="browse-btn">Browse File</label>
+            <input type="file" id="prod-image" name="image"
+                   accept="image/jpeg,image/png,image/gif,image/webp">
+            <p id="drop-error" class="drop-error hidden">Only image files are accepted.</p>
+          </div>
+          <div id="preview-container" class="hidden">
+            <img id="preview-img" src="" alt="Preview">
+            <p id="preview-name"></p>
+          </div>
           <span id="current-image-text" class="hidden">
             Current image: <span id="img-name"></span>
           </span>
