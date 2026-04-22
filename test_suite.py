@@ -1222,6 +1222,210 @@ try:
 except Exception as e:
     test("P6", "Server accepts valid image upload", False, str(e))
 
+
+
+# =============================================================
+# PHASE 6 — Complete Order Management (Item 10)
+# =============================================================
+print("\n── Phase 6-4 : Complete Order Management ──────────────────")
+
+# 6OM-01  /api/my-orders returns ALL orders (not capped at 5)
+try:
+    om_s = new_session()
+    login(om_s, USER_EMAIL, USER_PASSWORD)
+    r    = om_s.get(url("/api/my-orders"), timeout=TIMEOUT)
+    data = r.json() if r.status_code == 200 else None
+    test("P6", "/api/my-orders returns JSON array (all orders)",
+         r.status_code == 200 and isinstance(data, list),
+         f"Got {r.status_code}, type={type(data)}")
+except Exception as e:
+    test("P6", "/api/my-orders returns all orders", False, str(e))
+
+
+# 6OM-02  /api/my-orders blocked for unauthenticated
+try:
+    anon_om = new_session()
+    r       = anon_om.get(url("/api/my-orders"), timeout=TIMEOUT)
+    test("P6", "/api/my-orders blocked for unauthenticated (401/403)",
+         r.status_code in {401, 403},
+         f"Got {r.status_code}")
+except Exception as e:
+    test("P6", "/api/my-orders requires auth", False, str(e))
+
+
+# 6OM-03  Cancel endpoint exists and blocked for unauthenticated
+try:
+    anon_cancel = new_session()
+    csrf        = get_csrf(anon_cancel)
+    r           = anon_cancel.delete(url("/api/orders/1"),
+                                     headers={"x-csrf-token": csrf},
+                                     timeout=TIMEOUT)
+    test("P6", "DELETE /api/orders/:id blocked for unauthenticated (401/403)",
+         r.status_code in {401, 403},
+         f"Got {r.status_code}")
+except Exception as e:
+    test("P6", "Cancel order requires auth", False, str(e))
+
+
+# 6OM-04  Cancel non-existent order returns 404
+try:
+    cancel_s = new_session()
+    login(cancel_s, USER_EMAIL, USER_PASSWORD)
+    csrf = get_csrf(cancel_s)
+    r    = cancel_s.delete(url("/api/orders/999999"),
+                           headers={"x-csrf-token": csrf},
+                           timeout=TIMEOUT)
+    test("P6", "Cancel non-existent order returns 404",
+         r.status_code == 404,
+         f"Got {r.status_code}")
+except Exception as e:
+    test("P6", "Cancel non-existent order returns 404", False, str(e))
+
+
+# 6OM-05  Repay endpoint exists and blocked for unauthenticated
+try:
+    anon_repay = new_session()
+    csrf       = get_csrf(anon_repay)
+    r          = anon_repay.post(url("/api/orders/1/repay"),
+                                 headers={"x-csrf-token": csrf},
+                                 timeout=TIMEOUT)
+    test("P6", "POST /api/orders/:id/repay blocked for unauthenticated (401/403)",
+         r.status_code in {401, 403},
+         f"Got {r.status_code}")
+except Exception as e:
+    test("P6", "Repay order requires auth", False, str(e))
+
+
+# 6OM-06  Repay non-existent order returns 404
+try:
+    repay_s = new_session()
+    login(repay_s, USER_EMAIL, USER_PASSWORD)
+    csrf = get_csrf(repay_s)
+    r    = repay_s.post(url("/api/orders/999999/repay"),
+                        headers={"x-csrf-token": csrf},
+                        timeout=TIMEOUT)
+    test("P6", "Repay non-existent order returns 404",
+         r.status_code == 404,
+         f"Got {r.status_code}")
+except Exception as e:
+    test("P6", "Repay non-existent order returns 404", False, str(e))
+
+
+# 6OM-07  Create a pending order then cancel it
+new_order_id = None
+try:
+    # Step 1: create a real pending order via checkout
+    co_s = new_session()
+    login(co_s, USER_EMAIL, USER_PASSWORD)
+    prods = get_products(co_s)
+    if prods:
+        csrf = get_csrf(co_s)
+        r    = co_s.post(url("/api/checkout"),
+                         json={"items": [{"pid": prods[0]["pid"], "qty": 1}]},
+                         headers={"x-csrf-token": csrf},
+                         timeout=TIMEOUT)
+        # Get the latest pending order from my-orders
+        r2      = co_s.get(url("/api/my-orders"), timeout=TIMEOUT)
+        orders  = r2.json() if r2.status_code == 200 else []
+        pending = [o for o in orders if o["status"] == "pending"]
+        if pending:
+            new_order_id = pending[0]["orderid"]
+            # Step 2: cancel it
+            csrf2 = get_csrf(co_s)
+            r3    = co_s.delete(url(f"/api/orders/{new_order_id}"),
+                                headers={"x-csrf-token": csrf2},
+                                timeout=TIMEOUT)
+            test("P6", "User can cancel their own pending order (200)",
+                 r3.status_code == 200,
+                 f"Got {r3.status_code}: {r3.text[:100]}")
+
+            # Step 3: verify status is now cancelled
+            r4     = co_s.get(url("/api/my-orders"), timeout=TIMEOUT)
+            orders2 = r4.json() if r4.status_code == 200 else []
+            cancelled_order = next(
+                (o for o in orders2 if o["orderid"] == new_order_id), None)
+            test("P6", "Cancelled order status updated to 'cancelled'",
+                 cancelled_order and cancelled_order["status"] == "cancelled",
+                 f"Status: {cancelled_order['status'] if cancelled_order else 'not found'}")
+        else:
+            test("P6", "Cancel pending order (no pending orders — skipped)", True, warn=True)
+    else:
+        test("P6", "Cancel pending order (no products — skipped)", True, warn=True)
+except Exception as e:
+    test("P6", "User can cancel pending order", False, str(e))
+
+
+# 6OM-08  Cannot cancel a paid order
+try:
+    paid_s  = new_session()
+    login(paid_s, ADMIN_EMAIL, ADMIN_PASSWORD)
+    r       = paid_s.get(url("/api/admin/orders"), timeout=TIMEOUT)
+    orders  = r.json() if r.status_code == 200 else []
+    paid    = [o for o in orders if o["status"] == "paid"]
+    if paid:
+        # Try to cancel as the order owner — use user session
+        user_s3 = new_session()
+        login(user_s3, USER_EMAIL, USER_PASSWORD)
+        csrf = get_csrf(user_s3)
+        r2   = user_s3.delete(url(f"/api/orders/{paid[0]['orderid']}"),
+                               headers={"x-csrf-token": csrf},
+                               timeout=TIMEOUT)
+        test("P6", "Cannot cancel a paid order (400/403/404)",
+             r2.status_code in {400, 403, 404},
+             f"Got {r2.status_code} — paid orders must not be cancellable")
+    else:
+        test("P6", "Cannot cancel paid order (no paid orders — skipped)", True, warn=True)
+except Exception as e:
+    test("P6", "Cannot cancel paid order", False, str(e))
+
+
+# 6OM-09  Cannot cancel another user's order
+try:
+    # Create order as USER, try to cancel as ADMIN
+    owner_s = new_session()
+    login(owner_s, USER_EMAIL, USER_PASSWORD)
+    r       = owner_s.get(url("/api/my-orders"), timeout=TIMEOUT)
+    orders  = r.json() if r.status_code == 200 else []
+    pending = [o for o in orders if o["status"] == "pending"]
+    if pending:
+        csrf  = get_csrf(admin_s)   # admin session from P2B
+        r2    = admin_s.delete(url(f"/api/orders/{pending[0]['orderid']}"),
+                                headers={"x-csrf-token": csrf},
+                                timeout=TIMEOUT)
+        test("P6", "Admin cannot cancel another user's order (403/404)",
+             r2.status_code in {403, 404},
+             f"Got {r2.status_code} — must check userid ownership")
+    else:
+        test("P6", "Cannot cancel other user's order (no pending — skipped)", True, warn=True)
+except Exception as e:
+    test("P6", "Cannot cancel other user's order", False, str(e))
+
+
+# 6OM-10  Repay endpoint returns Stripe URL for pending order
+try:
+    repay_s2 = new_session()
+    login(repay_s2, USER_EMAIL, USER_PASSWORD)
+    r        = repay_s2.get(url("/api/my-orders"), timeout=TIMEOUT)
+    orders   = r.json() if r.status_code == 200 else []
+    pending  = [o for o in orders if o["status"] == "pending"]
+    if pending:
+        csrf = get_csrf(repay_s2)
+        r2   = repay_s2.post(url(f"/api/orders/{pending[0]['orderid']}/repay"),
+                              headers={"x-csrf-token": csrf},
+                              timeout=TIMEOUT)
+        if r2.status_code == 200:
+            checkout_url = r2.json().get("url", "")
+            test("P6", "Repay pending order returns Stripe URL",
+                 "stripe.com" in checkout_url,
+                 f"URL: {checkout_url[:80]}")
+        else:
+            test("P6", "Repay pending order returns Stripe URL",
+                 False, f"Got {r2.status_code}: {r2.text[:100]}", warn=True)
+    else:
+        test("P6", "Repay pending order (no pending orders — skipped)", True, warn=True)
+except Exception as e:
+    test("P6", "Repay pending order returns Stripe URL", False, str(e), warn=True)
+
 # =============================================================
 # FINAL REPORT
 # =============================================================

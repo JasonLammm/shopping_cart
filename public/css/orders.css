@@ -186,50 +186,48 @@ body {
   }
 
   /* ── Order Actions ── */
-.order-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eee;
-}
+  .order-actions {
+    display: flex;
+    gap: 10px;
+    padding: 12px 0 4px;
+    border-top: 1px solid #eee;
+    margin-top: 10px;
+  }
+  
+  .btn-pay-again {
+    padding: 7px 16px;
+    background: #6200ff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .btn-pay-again:hover { background: #1558b0; }
+  
+  .btn-cancel-order {
+    padding: 7px 16px;
+    background: #fff;
+    color: #c0392b;
+    border: 1px solid #c0392b;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  
+  .btn-cancel-order:hover {
+    background: #c0392b;
+    color: #fff;
+  }
 
-.btn-pay {
-  padding: 8px 20px;
-  background: #01696f;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background 0.2s;
-}
-
-.btn-pay:hover:not(:disabled) { background: #0c4e54; }
-
-.btn-cancel {
-  padding: 8px 20px;
-  background: #fff;
-  color: #c0392b;
-  border: 1px solid #c0392b;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background 0.2s, color 0.2s;
-}
-
-.btn-cancel:hover:not(:disabled) {
-  background: #c0392b;
-  color: #fff;
-}
-
-.btn-pay:disabled, .btn-cancel:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.orders-subtitle {
-  color: #666;
-  margin-bottom: 20px;
-  font-size: 0.95em;
-}
+  .status-cancelled {
+    background: #e0e0e0;
+    color: #555;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }

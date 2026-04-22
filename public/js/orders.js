@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* ── Fetch Orders from Server ────────────── */
   async function loadOrders() {
     const container = document.getElementById('orders-container');
-  
+    container.innerHTML = '';
     try {
       const res = await fetch('/api/my-orders');
   
@@ -78,10 +78,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function createOrderCard(order) {
     const card = document.createElement('div');
     card.className = 'order-card';
-  
     card.appendChild(createOrderHeader(order));
     card.appendChild(createOrderItemsTable(order.items));
     card.appendChild(createOrderTotal(order));
+  
+    // Phase 6: Pay Again + Cancel for pending orders
+    const actions = createOrderActions(order);
+    if (actions) card.appendChild(actions);
   
     return card;
   }
@@ -96,8 +99,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     idSpan.textContent = `Order #${order.orderid}`;
   
     const statusSpan = document.createElement('span');
-    statusSpan.className = order.status === 'paid' ? 'status-paid' : 'status-pending';
-    statusSpan.textContent = order.status === 'paid' ? 'Paid' : 'Pending';
+    if (order.status === 'paid') {
+      statusSpan.className = 'status-paid';
+      statusSpan.textContent = 'Paid';
+    } else if (order.status === 'cancelled') {
+      statusSpan.className = 'status-cancelled';
+      statusSpan.textContent = 'Cancelled';
+    } else {
+      statusSpan.className = 'status-pending';
+      statusSpan.textContent = 'Pending';
+    }
   
     const dateSpan = document.createElement('span');
     dateSpan.className = 'order-date';
@@ -156,4 +167,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     total.className = 'order-total';
     total.textContent = `Total: $${parseFloat(order.total).toFixed(2)} ${order.currency.toUpperCase()}`;
     return total;
+  }
+
+  function createOrderActions(order) {
+    if (order.status !== 'pending') return null;
+  
+    const div = document.createElement('div');
+    div.className = 'order-actions';
+  
+    const payBtn = document.createElement('button');
+    payBtn.className = 'btn-pay-again';
+    payBtn.textContent = 'Pay Again';
+    payBtn.addEventListener('click', async () => {
+      payBtn.disabled = true;
+      payBtn.textContent = 'Redirecting...';
+      try {
+        const csrfRes = await fetch('/api/csrf-token');
+        const { csrfToken } = await csrfRes.json();
+        const res = await fetch(`/api/orders/${order.orderid}/repay`, {
+          method: 'POST',
+          headers: { 'x-csrf-token': csrfToken }
+        });
+        const data = await res.json();
+        if (res.ok) window.location.href = data.url;
+        else alert(data.error || 'Repay failed.');
+      } catch (e) {
+        alert('Network error.');
+      }
+      payBtn.disabled = false;
+      payBtn.textContent = 'Pay Again';
+    });
+  
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn-cancel-order';
+    cancelBtn.textContent = 'Cancel Order';
+    cancelBtn.addEventListener('click', async () => {
+      if (!confirm('Cancel this order?')) return;
+    
+      // Disable both buttons immediately to prevent double-click
+      cancelBtn.disabled = true;
+      payBtn.disabled = true;
+      cancelBtn.textContent = 'Cancelling...';
+    
+      try {
+        const csrfRes = await fetch('/api/csrf-token');
+        const { csrfToken } = await csrfRes.json();
+        const res = await fetch(`/api/orders/${order.orderid}`, {
+          method: 'DELETE',
+          headers: { 'x-csrf-token': csrfToken }
+        });
+        const data = await res.json();
+    
+        if (res.ok) {
+          // Re-fetch and re-render entire orders list from server
+          await loadOrders();
+        } else {
+          alert(data.error || 'Cancel failed.');
+          cancelBtn.disabled = false;
+          payBtn.disabled = false;
+          cancelBtn.textContent = 'Cancel Order';
+        }
+      } catch (e) {
+        alert('Network error.');
+        cancelBtn.disabled = false;
+        payBtn.disabled = false;
+        cancelBtn.textContent = 'Cancel Order';
+      }
+    });
+  
+    div.appendChild(payBtn);
+    div.appendChild(cancelBtn);
+    return div;
   }

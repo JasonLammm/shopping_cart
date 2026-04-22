@@ -826,41 +826,100 @@ app.get('/api/my-orders', requireAuth, (req, res) => {
      JOIN order_items oi ON o.orderid = oi.orderid
      LEFT JOIN products p ON oi.pid = p.pid
      WHERE o.userid = ?
-       AND o.orderid IN (
-         SELECT orderid FROM orders
-         WHERE userid = ?
-         ORDER BY created_at DESC
-         LIMIT 5
-       )
      ORDER BY o.created_at DESC`,
-    [req.session.userId, req.session.userId],
+    [req.session.userId],
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Database error.' });
-
       const ordersMap = new Map();
       for (const row of rows) {
         if (!ordersMap.has(row.orderid)) {
           ordersMap.set(row.orderid, {
-            orderid   : row.orderid,
-            total     : row.total,
-            status    : row.status,
-            currency  : row.currency,
-            created_at: row.created_at,
-            items     : []
+            orderid: row.orderid, total: row.total,
+            status: row.status, currency: row.currency,
+            created_at: row.created_at, items: []
           });
         }
         ordersMap.get(row.orderid).items.push({
-          pid         : row.pid,
-          product_name: row.product_name,
-          quantity    : row.quantity,
-          price       : row.price
+          pid: row.pid, product_name: row.product_name,
+          quantity: row.quantity, price: row.price
         });
       }
-
-      const orders = [...ordersMap.values()];
-      res.json(orders);
+      res.json([...ordersMap.values()]);
     }
   );
+});
+
+app.delete('/api/orders/:orderid', validateCSRF, requireAuth, (req, res) => {
+  const orderid = parseInt(req.params.orderid);
+  if (isNaN(orderid)) return res.status(400).json({ error: 'Invalid order ID.' });
+
+  // Only allow cancelling YOUR OWN pending orders
+  db.get(
+    `SELECT * FROM orders WHERE orderid = ? AND userid = ?`,
+    [orderid, req.session.userId],
+    (err, order) => {
+      if (err) return res.status(500).json({ error: 'Database error.' });
+      if (!order) return res.status(404).json({ error: 'Order not found.' });
+      if (order.status !== 'pending') {
+        return res.status(400).json({ error: 'Only pending orders can be cancelled.' });
+      }
+      db.run(`UPDATE orders SET status = 'cancelled' WHERE orderid = ?`, [orderid],
+        (err) => {
+          if (err) return res.status(500).json({ error: 'Database error.' });
+          res.json({ success: true });
+        }
+      );
+    }
+  );
+});
+
+app.post('/api/orders/:orderid/repay', validateCSRF, requireAuth, async (req, res) => {
+  const orderid = parseInt(req.params.orderid);
+  if (isNaN(orderid)) return res.status(400).json({ error: 'Invalid order ID.' });
+
+  try {
+    const order = await new Promise((resolve, reject) => {
+      db.get(`SELECT * FROM orders WHERE orderid = ? AND userid = ?`,
+        [orderid, req.session.userId],
+        (err, row) => err ? reject(err) : resolve(row));
+    });
+
+    if (!order) return res.status(404).json({ error: 'Order not found.' });
+    if (order.status !== 'pending') {
+      return res.status(400).json({ error: 'Only pending orders can be paid.' });
+    }
+
+    const items = await new Promise((resolve, reject) => {
+      db.all(
+        `SELECT oi.pid, oi.quantity, oi.price, p.name
+         FROM order_items oi LEFT JOIN products p ON oi.pid = p.pid
+         WHERE oi.orderid = ?`,
+        [orderid],
+        (err, rows) => err ? reject(err) : resolve(rows)
+      );
+    });
+
+    const stripeSession = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: items.map(i => ({
+        price_data: {
+          currency: order.currency,
+          product_data: { name: i.name || `Product #${i.pid}` },
+          unit_amount: Math.round(i.price * 100)
+        },
+        quantity: i.quantity
+      })),
+      mode: 'payment',
+      success_url: `${YOUR_DOMAIN}/orders?success=1`,
+      cancel_url: `${YOUR_DOMAIN}/orders?cancelled=1`,
+      metadata: { orderid: String(orderid), digest: order.digest }
+    });
+
+    res.json({ url: stripeSession.url });
+  } catch (err) {
+    console.error('/api/orders/repay error:', err);
+    res.status(500).json({ error: 'Repay failed.' });
+  }
 });
 
 // =========================================
