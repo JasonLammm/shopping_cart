@@ -527,6 +527,10 @@ app.get('/api/products', (req, res) => {
     return res.status(400).json({ error: 'Invalid category ID.' });
   }
 
+  const page  = Math.max(1, parseInt(req.query.page)  || 1);
+  const limit = Math.min(20, parseInt(req.query.limit) || 8);
+  const offset = (page - 1) * limit;
+
   const catid = parseInt(req.query.catid);
 
   if (req.query.catid !== undefined) {
@@ -536,33 +540,39 @@ app.get('/api/products', (req, res) => {
     }
     const sql = `
       SELECT p.pid, p.catid, p.name, p.price, p.description, p.image,
-             c.name AS category_name
+            c.name AS category_name,
+            COUNT(*) OVER() AS total_count
       FROM products p
       LEFT JOIN categories c ON p.catid = c.catid
       WHERE p.catid = ?
       ORDER BY p.pid ASC
+      LIMIT ? OFFSET ?
     `;
-    db.all(sql, [catidInt], (err, rows) => {
+    db.all(sql, [catidInt, limit, offset], (err, rows) => {
       if (err) {
         console.error('GET /api/products (filtered) error:', err.message);
         return res.status(500).json({ error: 'Database error.' });
       }
-      res.json(rows);
+      const total = rows[0]?.total_count || 0;
+      res.json({ products: rows, total, page, limit });
     });
   } else {
     const sql = `
       SELECT p.pid, p.catid, p.name, p.price, p.description, p.image,
-             c.name AS category_name
+            c.name AS category_name,
+            COUNT(*) OVER() AS total_count
       FROM products p
       LEFT JOIN categories c ON p.catid = c.catid
       ORDER BY p.pid ASC
+      LIMIT ? OFFSET ?
     `;
-    db.all(sql, [], (err, rows) => {
+    db.all(sql, [limit, offset], (err, rows) => {
       if (err) {
         console.error('GET /api/products error:', err.message);
         return res.status(500).json({ error: 'Database error.' });
       }
-      res.json(rows);
+      const total = rows[0]?.total_count || 0;
+      res.json({ products: rows, total, page, limit });
     });
   }
 });

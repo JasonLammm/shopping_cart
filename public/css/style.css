@@ -437,16 +437,56 @@ main {
     .product-card { width: 100%; }
 }
 
-/* --- 10. FOOTER --- */
+/* =========================================
+   Footer
+========================================= */
 footer {
     text-align: center;
-    padding: 40px;
-    background: white;
-    color: #aaa;
-    margin-top: 60px;
-    border-top: 1px solid #eee;
-}
-
+    padding: 32px 16px;
+    background: #f5f5f5;
+    border-top: 1px solid #e0e0e0;
+    color: #555;
+    font-size: 0.9rem;
+  }
+  
+  footer p {
+    margin-bottom: 12px;
+  }
+  
+  /* =========================================
+     Social Share
+  ========================================= */
+  .social-share {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+  }
+  
+  .fb-share-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #1877f2;
+    color: #ffffff;
+    padding: 9px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+  }
+  
+  .fb-share-btn:hover {
+    background-color: #1558b0;
+  }
+  
+  .fb-share-btn:active {
+    background-color: #0e3f8a;
+  }
+  
+  .fb-share-btn svg {
+    flex-shrink: 0;
+  }
 /* FIX: Category Active State */
 aside ul li {
     list-style: none;

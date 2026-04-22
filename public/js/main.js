@@ -10,6 +10,9 @@
 // Only stores { pid, qty } — name/price are fetched from server on restore
 let cart = [];
 
+let currentPage = 1;
+const PAGE_SIZE = 2;
+
 document.addEventListener('DOMContentLoaded', async () => {
   await restoreCart();
   initCartDropdown();
@@ -34,7 +37,8 @@ async function initHomePage() {
 
   const params = new URLSearchParams(window.location.search);
   const catIdFromURL = params.get('catid') || 'all';
-  await fetchAndRenderProducts(catIdFromURL);
+  const pageFromURL  = parseInt(params.get('page')) || 1;
+  await fetchAndRenderProducts(catIdFromURL, pageFromURL);
 
   if (catIdFromURL !== 'all') {
     const activeItem = document.querySelector(
@@ -52,7 +56,8 @@ async function initHomePage() {
 
   window.addEventListener('popstate', (e) => {
     const catId = e.state?.catId || 'all';
-    fetchAndRenderProducts(catId);
+    const page  = e.state?.page  || 1;
+    fetchAndRenderProducts(catId, page);
     document.querySelectorAll('.category-list li')
       .forEach(li => li.classList.remove('active'));
     const targetItem = document.querySelector(
@@ -102,8 +107,8 @@ async function loadCategories() {
             catId === 'all'
               ? window.location.pathname
               : `${window.location.pathname}?catid=${catId}`;
-          history.pushState({ catId }, '', newUrl);
-          fetchAndRenderProducts(catId);
+          history.pushState({ catId, page: 1 }, '', newUrl);
+          fetchAndRenderProducts(catId, 1);
           updateBreadcrumb(item.textContent);
         });
       });
@@ -115,22 +120,24 @@ async function loadCategories() {
 }  
 
 // Fetch products from server (optionally filtered by catid)
-async function fetchAndRenderProducts(catId) {
+async function fetchAndRenderProducts(catId, page = 1) {
   const container = document.getElementById('product-container');
-  container.textContent = 'Loading products...'; // safe: textContent
+  container.textContent = 'Loading products...';
+  currentPage = page;
 
   try {
-    let url = '/api/products';
+    let url = `/api/products?page=${page}&limit=${PAGE_SIZE}`;
     if (catId && catId !== 'all') {
-      url += `?catid=${encodeURIComponent(catId)}`;
+      url += `&catid=${encodeURIComponent(catId)}`;
     }
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch products');
-    const products = await response.json();
-    renderProducts(products);
+    const data = await response.json();
+    renderProducts(data.products);
+    renderPagination(catId, page, data.total, PAGE_SIZE);
   } catch (err) {
     console.error(err);
-    container.textContent = 'Error loading products.'; // safe: textContent
+    container.textContent = 'Error loading products.';
   }
 }
 
@@ -195,6 +202,42 @@ function renderProducts(products) {
     });
 }
   
+function renderPagination(catId, currentPage, totalItems, pageSize) {
+  const old = document.getElementById('pagination');
+  if (old) old.remove();
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  if (totalPages <= 1) return;
+
+  const nav = document.createElement('nav');
+  nav.id = 'pagination';
+  nav.style.cssText = 'display:flex; gap:8px; justify-content:center; margin:20px 0;';
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.disabled = (i === currentPage);
+    btn.style.cssText = `padding:6px 12px; cursor:pointer;
+      font-weight: ${i === currentPage ? 'bold' : 'normal'};
+      border: 1px solid #ccc; border-radius: 4px;
+      background: ${i === currentPage ? '#333' : '#fff'};
+      color: ${i === currentPage ? '#fff' : '#333'};`;
+
+    btn.addEventListener('click', () => {
+      const newUrl = catId === 'all'
+        ? `${window.location.pathname}?page=${i}`
+        : `${window.location.pathname}?catid=${catId}&page=${i}`;
+      history.pushState({ catId, page: i }, '', newUrl);
+      fetchAndRenderProducts(catId, i);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    nav.appendChild(btn);
+  }
+
+  const container = document.getElementById('product-container');
+  container.insertAdjacentElement('afterend', nav);
+}
 
 // Update breadcrumb text in the sidebar/nav area
 function updateBreadcrumb(categoryName) {

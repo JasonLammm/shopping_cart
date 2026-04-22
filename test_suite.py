@@ -99,12 +99,12 @@ def rand_email() -> str:
     tag = "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
     return f"autotest_{tag}@test.com"
 
-def get_products(s: requests.Session) -> list:
-    try:
-        r = s.get(url("/api/products"), timeout=TIMEOUT)
-        return r.json() if r.status_code == 200 else []
-    except Exception:
+def get_products(session):
+    r = session.get(url("/api/products"), timeout=TIMEOUT)
+    if r.status_code != 200:
         return []
+    raw = r.json()
+    return raw["products"] if isinstance(raw, dict) else raw
 
 
 # =============================================================
@@ -144,7 +144,8 @@ except Exception as e:
 products = []
 try:
     r = s0.get(url("/api/products"), timeout=TIMEOUT)
-    products = r.json() if r.status_code == 200 else []
+    raw      = r.json() if r.status_code == 200 else []
+    products = raw["products"] if isinstance(raw, dict) else raw
     counts   = Counter(p["catid"] for p in products)
     ok       = len(counts) >= 2 and all(v >= 2 for v in counts.values())
     test("P1", "≥ 2 products per category", ok,
@@ -181,7 +182,8 @@ try:
     if categories:
         catid = categories[0]["catid"]
         r     = s0.get(url(f"/api/products?catid={catid}"), timeout=TIMEOUT)
-        items = r.json() if r.status_code == 200 else []
+        raw   = r.json() if r.status_code == 200 else []
+        items = raw["products"] if isinstance(raw, dict) else raw
         ok    = len(items) > 0 and all(p["catid"] == catid for p in items)
         test("P1", "Category filter returns only correct products", ok,
              f"catid={catid}, returned {len(items)} items")
@@ -1013,6 +1015,109 @@ try:
 
 except Exception as e:
     test("P6-1", "Phase 6-1 social plugin checks", False, str(e))
+
+# =============================================================
+# PHASE 6-2 — Pagination / AJAX Product Browsing
+# =============================================================
+print("\n── Phase 6-2 : Pagination / AJAX Browsing ───────────────")
+
+try:
+    # 6-P-01 API returns new paginated format (object with products/total/page/limit)
+    r = s0.get(url("/api/products"), timeout=TIMEOUT)
+    data = r.json()
+    is_paginated_format = (
+        isinstance(data, dict) and
+        "products" in data and
+        "total" in data and
+        "page" in data and
+        "limit" in data
+    )
+    test("P6-2", "GET /api/products returns paginated format {products, total, page, limit}",
+         is_paginated_format,
+         "API should return an object with products[], total, page, limit — not a plain array")
+
+    # 6-P-02 products field is a list
+    if is_paginated_format:
+        test("P6-2", "products field is an array",
+             isinstance(data["products"], list),
+             "data.products must be a list/array")
+
+    # 6-P-03 page and limit are integers
+    if is_paginated_format:
+        test("P6-2", "page and limit are integers in response",
+             isinstance(data["page"], int) and isinstance(data["limit"], int),
+             "page and limit must be integers")
+
+    # 6-P-04 page param is respected
+    r2 = s0.get(url("/api/products?page=1&limit=2"), timeout=TIMEOUT)
+    d2 = r2.json()
+    test("P6-2", "GET /api/products?page=1&limit=2 returns at most 2 products",
+         isinstance(d2, dict) and len(d2.get("products", [])) <= 2,
+         "API should honour the limit param and return <= 2 products")
+
+    # 6-P-05 page 2 returns DIFFERENT products from page 1
+    r3 = s0.get(url("/api/products?page=2&limit=2"), timeout=TIMEOUT)
+    d3 = r3.json()
+    if d2.get("products") and d3.get("products"):
+        pids_p1 = {p["pid"] for p in d2["products"]}
+        pids_p2 = {p["pid"] for p in d3["products"]}
+        test("P6-2", "Page 2 returns different products than page 1",
+             len(pids_p1 & pids_p2) == 0,
+             "Products on page 2 should not overlap with page 1 (check OFFSET logic)")
+    else:
+        test("P6-2", "Page 2 returns different products than page 1",
+             False,
+             "Not enough products to test page 2 — add at least 3 products to DB")
+
+    # 6-P-06 total count is consistent across pages
+    if is_paginated_format:
+        total_p1 = d2.get("total")
+        total_p2 = d3.get("total")
+        test("P6-2", "total count is consistent across different pages",
+             total_p1 is not None and total_p1 == total_p2,
+             "total field must return the same value regardless of which page is requested")
+
+    # 6-P-07 catid filter still works with pagination
+    r4 = s0.get(url("/api/products?catid=1&page=1&limit=2"), timeout=TIMEOUT)
+    d4 = r4.json()
+    test("P6-2", "catid filter works combined with pagination",
+         isinstance(d4, dict) and "products" in d4,
+         "GET /api/products?catid=1&page=1&limit=2 should return paginated format")
+
+    # 6-P-08 all products in filtered result belong to correct category
+    if isinstance(d4, dict) and d4.get("products"):
+        all_correct_cat = all(p["catid"] == 1 for p in d4["products"])
+        test("P6-2", "All products in catid=1 filter belong to category 1",
+             all_correct_cat,
+             "Filtered products must all have catid matching the filter")
+
+    # 6-P-09 invalid page param is handled gracefully (no crash)
+    r5 = s0.get(url("/api/products?page=-1&limit=abc"), timeout=TIMEOUT)
+    test("P6-2", "Invalid page/limit params handled gracefully (no 500 error)",
+         r5.status_code in (200, 400),
+         "Server should not crash on invalid page/limit — return 200 or 400, not 500")
+
+    # 6-P-10 homepage HTML loads without errors (JS pagination wires up)
+    r6 = s0.get(url("/"), timeout=TIMEOUT)
+    homepage_ok = r6.status_code == 200
+    test("P6-2", "Homepage loads successfully (200 OK)",
+         homepage_ok,
+         "GET / must return 200 for JS pagination to initialise")
+
+    # 6-P-11 ?page= param in homepage URL is not rejected by server
+    r7 = s0.get(url("/?page=2"), timeout=TIMEOUT)
+    test("P6-2", "Homepage with ?page=2 query param loads successfully",
+         r7.status_code == 200,
+         "GET /?page=2 must return 200 — server should not reject page param on homepage")
+
+    # 6-P-12 ?catid=+page= combined URL loads homepage successfully
+    r8 = s0.get(url("/?catid=1&page=1"), timeout=TIMEOUT)
+    test("P6-2", "Homepage with ?catid=1&page=1 loads successfully",
+         r8.status_code == 200,
+         "GET /?catid=1&page=1 must return 200")
+
+except Exception as e:
+    test("P6-2", "Phase 6-2 pagination checks", False, str(e))
 
 # =============================================================
 # FINAL REPORT

@@ -184,3 +184,52 @@ body {
     font-size: 1rem;
     margin-top: 20px;
   }
+
+  /* ── Order Actions ── */
+.order-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.btn-pay {
+  padding: 8px 20px;
+  background: #01696f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s;
+}
+
+.btn-pay:hover:not(:disabled) { background: #0c4e54; }
+
+.btn-cancel {
+  padding: 8px 20px;
+  background: #fff;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #c0392b;
+  color: #fff;
+}
+
+.btn-pay:disabled, .btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.orders-subtitle {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 0.95em;
+}
