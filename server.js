@@ -105,7 +105,7 @@ app.use((req, res, next) => {
       "default-src 'self'",
       "script-src 'self' https://connect.facebook.net",
       "frame-src 'self' https://www.facebook.com",
-      "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
+      "style-src 'self' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https://www.facebook.com https://static.xx.fbcdn.net",
       "connect-src 'self'",
