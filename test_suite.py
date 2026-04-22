@@ -1119,6 +1119,109 @@ try:
 except Exception as e:
     test("P6-2", "Phase 6-2 pagination checks", False, str(e))
 
+
+# =============================================================
+# PHASE 6 — Drag-and-Drop File Upload
+# =============================================================
+print("\n── Phase 6-3 : Drag-and-Drop ──────────────────────────────")
+
+import os
+from io import BytesIO
+
+# 6DD-01  Drop zone element exists in admin HTML
+try:
+    adm = new_session()
+    login(adm, ADMIN_EMAIL, ADMIN_PASSWORD)
+    r   = adm.get(url("/admin"), timeout=TIMEOUT)
+    html = r.text if r.status_code == 200 else ""
+    test("P6", "Admin panel has #drop-zone element",
+         'id="drop-zone"' in html,
+         "id='drop-zone' not found in admin.html")
+except Exception as e:
+    test("P6", "Admin panel has #drop-zone element", False, str(e))
+
+# 6DD-02  Preview container exists in admin HTML
+try:
+    test("P6", "Admin panel has #preview-container element",
+         'id="preview-container"' in html,
+         "id='preview-container' not found in admin.html")
+except Exception as e:
+    test("P6", "Admin panel has #preview-container element", False, str(e))
+
+# 6DD-03  Preview image element exists
+try:
+    test("P6", "Admin panel has #preview-img element",
+         'id="preview-img"' in html,
+         "id='preview-img' not found in admin.html")
+except Exception as e:
+    test("P6", "Admin panel has #preview-img element", False, str(e))
+
+# 6DD-04  Drop error element exists (for rejection feedback)
+try:
+    test("P6", "Admin panel has #drop-error element",
+         'id="drop-error"' in html,
+         "id='drop-error' not found in admin.html")
+except Exception as e:
+    test("P6", "Admin panel has #drop-error element", False, str(e))
+
+# 6DD-05  Non-image file upload is rejected by server (MIME validation)
+try:
+    adm2 = new_session()
+    login(adm2, ADMIN_EMAIL, ADMIN_PASSWORD)
+    csrf = get_csrf(adm2)
+    fake_txt = BytesIO(b"this is not an image")
+    r = adm2.post(url("/api/products"),
+                  data={"catid": "1", "name": "TestReject",
+                        "price": "1.00", "description": "test"},
+                  files={"image": ("evil.txt", fake_txt, "text/plain")},
+                  headers={"x-csrf-token": csrf},
+                  timeout=TIMEOUT)
+    test("P6", "Server rejects non-image file upload (400)",
+         r.status_code == 400,
+         f"Got {r.status_code} — server must validate MIME type")
+except Exception as e:
+    test("P6", "Server rejects non-image file upload", False, str(e))
+
+# 6DD-06  Valid image file upload is accepted by server
+try:
+    adm3 = new_session()
+    login(adm3, ADMIN_EMAIL, ADMIN_PASSWORD)
+    csrf = get_csrf(adm3)
+    # Minimal 1x1 red JPEG
+    tiny_jpeg = bytes([
+        0xFF,0xD8,0xFF,0xE0,0x00,0x10,0x4A,0x46,0x49,0x46,0x00,0x01,
+        0x01,0x00,0x00,0x01,0x00,0x01,0x00,0x00,0xFF,0xDB,0x00,0x43,
+        0x00,0x08,0x06,0x06,0x07,0x06,0x05,0x08,0x07,0x07,0x07,0x09,
+        0x09,0x08,0x0A,0x0C,0x14,0x0D,0x0C,0x0B,0x0B,0x0C,0x19,0x12,
+        0x13,0x0F,0x14,0x1D,0x1A,0x1F,0x1E,0x1D,0x1A,0x1C,0x1C,0x20,
+        0x24,0x2E,0x27,0x20,0x22,0x2C,0x23,0x1C,0x1C,0x28,0x37,0x29,
+        0x2C,0x30,0x31,0x34,0x34,0x34,0x1F,0x27,0x39,0x3D,0x38,0x32,
+        0x3C,0x2E,0x33,0x34,0x32,0xFF,0xC0,0x00,0x0B,0x08,0x00,0x01,
+        0x00,0x01,0x01,0x01,0x11,0x00,0xFF,0xC4,0x00,0x1F,0x00,0x00,
+        0x01,0x05,0x01,0x01,0x01,0x01,0x01,0x01,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
+        0x09,0x0A,0x0B,0xFF,0xDA,0x00,0x08,0x01,0x01,0x00,0x00,0x3F,
+        0x00,0xF5,0x0A,0xFF,0xD9
+    ])
+    r = adm3.post(url("/api/products"),
+                  data={"catid": "1", "name": "TestImageUpload",
+                        "price": "1.00", "description": "test"},
+                  files={"image": ("test.jpg", BytesIO(tiny_jpeg), "image/jpeg")},
+                  headers={"x-csrf-token": csrf},
+                  timeout=TIMEOUT)
+    new_test_pid = r.json().get("pid") if r.status_code == 201 else None
+    test("P6", "Server accepts valid JPEG image upload (201)",
+         r.status_code == 201,
+         f"Got {r.status_code}: {r.text[:100]}")
+
+    # Cleanup
+    if new_test_pid:
+        csrf2 = get_csrf(adm3)
+        adm3.delete(url(f"/api/products/{new_test_pid}"),
+                    headers={"x-csrf-token": csrf2}, timeout=TIMEOUT)
+except Exception as e:
+    test("P6", "Server accepts valid image upload", False, str(e))
+
 # =============================================================
 # FINAL REPORT
 # =============================================================

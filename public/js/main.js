@@ -133,6 +133,8 @@ async function fetchAndRenderProducts(catId, page = 1) {
     const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to fetch products');
     const data = await response.json();
+    const products = Array.isArray(data) ? data : (data.products || []);
+    const total    = Array.isArray(data) ? data.length : (data.total || 0);
     renderProducts(data.products);
     renderPagination(catId, page, data.total, PAGE_SIZE);
   } catch (err) {

@@ -430,3 +430,44 @@
   color: #555;
   margin-top: 4px;
 }
+
+/* Drop Zone */
+#drop-zone {
+  border: 2px dashed #aaa;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+#drop-zone.dragover {
+  background: #e8f4ff;
+  border-color: #4a90e2;
+}
+
+/* Thumbnail preview — MUST have explicit smaller dimensions */
+#preview-container {
+  margin-top: 12px;
+}
+
+#preview-img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  display: block;
+}
+
+#preview-name {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+#drop-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
