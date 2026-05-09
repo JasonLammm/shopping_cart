@@ -193,3 +193,53 @@
     }
   }
   
+  /* Test accounts section on login page */
+.test-accounts {
+  margin-top: 24px;
+  padding: 16px 20px;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  background-color: #fafafa;
+}
+
+.test-accounts-title {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.test-accounts-note {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.test-account-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.test-account-card {
+  flex: 1 1 180px;
+  min-width: 180px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+}
+
+.test-account-role {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.test-account-card .label {
+  font-weight: 600;
+}
+
+.test-account-card code {
+  font-family: Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+}

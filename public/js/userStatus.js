@@ -45,16 +45,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } else {
       const guestSpan = document.createElement('span');
-      guestSpan.className   = 'user-greeting';
+      guestSpan.className = 'user-greeting';
       guestSpan.textContent = 'Guest';
-
-      const link = document.createElement('a');
-      link.href      = '/login';
-      link.textContent = 'Login';
-      link.className = 'user-action-link';
-
+  
+      const loginLink = document.createElement('a');
+      loginLink.href = '/login';
+      loginLink.textContent = 'Login';
+      loginLink.className = 'user-action-link';
+  
+      const registerLink = document.createElement('a');
+      registerLink.href = '/register';
+      registerLink.textContent = 'Register';
+      registerLink.className = 'user-action-link';
+  
       el.appendChild(guestSpan);
-      el.appendChild(link);
-    }
+      el.appendChild(loginLink);
+      el.appendChild(registerLink);
+  }
   });
 });
