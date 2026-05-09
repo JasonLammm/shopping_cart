@@ -31,6 +31,25 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT;
 
 // =========================================
+// [SECURITY FIX] Block direct access to backend source files
+// Must be FIRST — before any static or route middleware
+// =========================================
+const BLOCKED_FILES = [
+  '/server.js',
+  '/database.js',
+  '/shopping.db',
+  '/package.json',
+  '/package-lock.json',
+  '/.env',
+  '/nginx-config.txt',
+  '/ierg4210-vm_key.pem',
+  '/README',
+];
+BLOCKED_FILES.forEach(file => {
+  app.get(file, (req, res) => res.status(404).json({ error: 'Route not found.' }));
+});
+
+// =========================================
 // [PHASE 4] Session + CSRF Setup
 // =========================================
 app.use(session({
@@ -207,8 +226,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false, dotfiles: 'deny' }));
+app.use('/public', express.static(path.join(__dirname, 'public'), { index: false, dotfiles: 'deny' }));
 
 // =========================================
 // MULTER — Image Upload Configuration
