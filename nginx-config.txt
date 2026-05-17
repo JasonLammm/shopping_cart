@@ -46,10 +46,10 @@ server {
 	server_tokens off;
 	autoindex off;
 
-	    location ~* \.(css|js|png|jpg|ico|svg|woff|ttf)$ {
-        root /var/www/html;
-        try_files $uri =404;
-    }
+	#location ~* \.(css|js|png|jpg|ico|svg|woff|ttf)$ {
+        #	root /var/www/html;
+	#	try_files $uri =404;
+	#}
 
 	location / {
 		# First attempt to serve request as file, then
@@ -133,10 +133,10 @@ server {
 
 	add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
-	location ~* \.(css|js|png|jpg|ico|svg|woff|ttf)$ {
-        root /var/www/html;
-        try_files $uri =404;
-   	}
+	#location ~* \.(css|js|png|jpg|ico|svg|woff|ttf)$ {
+		#root /var/www/html;
+	#	try_files $uri =404;
+	#}
 
         location /api/webhook {
    	  proxy_pass http://localhost:3001;
@@ -161,6 +161,7 @@ server {
         	# 4. Hide Node.js Headers (Security Requirement)
         	proxy_hide_header X-Powered-By;
 		proxy_set_header X-Forwarded-Proto $scheme;
+		proxy_set_header X-Real-IP $remote_addr;
 	}
 
 	# pass PHP scripts to FastCGI server
